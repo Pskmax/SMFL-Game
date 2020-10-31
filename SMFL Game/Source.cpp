@@ -6,8 +6,8 @@ using namespace std;
 int main()
 {
     int blank = 3, blankcooldown = 0;
-    float bulletx[1500] = { NULL }, bullety[1500] = { NULL }, levelbullet[1500] = {NULL};
-    float bbulletx[1500] = { NULL }, bbullety[1500] = { NULL }, bdeg[1500] = { NULL }, bvel[1500] = { NULL }, btype[1500] = {NULL};
+    float bulletx[5500] = { NULL-1000 }, bullety[5500] = { NULL-1000 }, levelbullet[5500] = {NULL};
+    float bbulletx[5500] = { NULL-1000 }, bbullety[5500] = { NULL-1000 }, bdeg[5500] = { NULL }, bvel[5500] = { NULL }, btype[5500] = {NULL};
     float degree1 = 0,degree2 = 0;
     int bosstotalbullet = 0;
     int totalbullet = 0;
@@ -17,13 +17,13 @@ int main()
     int bossmaxhealth = 1000;
     int bosshealth = bossmaxhealth;
     int r = 0.2;
-    int maxhealth = 10;
+    int maxhealth = 100;
     int playerhealth = maxhealth;
-    int gamephase = 1; // 1 for stage, 2 for boss
+    int gamephase = 1; // 1 for stage, 2 for boss intro ,3 for boss fight
+    int score=0;
     const double Pi = 3.14159265358979323846;
     unsigned int screensizex = 480, screensizey = 650;
 
-    /*
     //collision test
     float Random = rand() % 470;
     sf::Texture enemietexture;
@@ -37,7 +37,6 @@ int main()
     {
         std::cout << "Load failed" << std::endl;
     }
-    */
 
 
     //boss
@@ -45,7 +44,7 @@ int main()
     sf::RectangleShape boss;
     boss.setSize(sf::Vector2f(160.f, 182.f));
     boss.setTexture(&BossTexture);
-    boss.setPosition({ screensizex / 2 - 80.f,0.f });
+    boss.setPosition({ screensizex / 2 - 80.f,-200.f });
     boss.setTextureRect(sf::IntRect(0, 0, 162, 182));
     if (!BossTexture.loadFromFile("resources/boss.png"))
     {
@@ -159,19 +158,45 @@ int main()
     bossHealthCap.setTexture(bossHealthTexture);
     bossHealthCap.setTextureRect(sf::IntRect(0, 0, 14, 3));
     bossHealthCap.setPosition(screensizex-19, 398 - 2 * bossmaxhealth/10);
+
+    //big explosion
+    sf::Sprite bigExplosion;
+    sf::Texture bigExplosionTexture;
+        bigExplosion.setTexture(bigExplosionTexture);
+        bigExplosion.setTextureRect(sf::IntRect(88,4,82,82));
+    if (!bigExplosionTexture.loadFromFile("resources/Bigexplosion.png"))
+    {
+        std::cout << "Load Failed" << endl;
+    }
+    int bigExplosionnow = 0;
+    int bigExplosionAnimation[100] = {NULL};
+    double explosiontime = 0;
+    float explosionx[100] = {NULL};
+    float explosiony[100] = {NULL};
+    for (int i = 0; i < 100; i++)
+    {
+        explosionx[i] = NULL - 100;
+        explosiony[i] = NULL - 100;
+
+    }
+    double bossdefeatexplosion = 0;
+    int bossdefeatexplosioncount = 0;
+
     //clock
     sf::Clock clock;
-
     while (window.isOpen())
     {
         sf::Event event;
         sf::Time timeElapsed = clock.restart();
+        double deltatime = timeElapsed.asSeconds();
         while (window.pollEvent(event))
         {
             if (event.type == sf::Event::Closed)
                 window.close();
         }
         window.clear(sf::Color::Black);
+
+
 
         //map
         window.draw(Map1);
@@ -192,46 +217,56 @@ int main()
         window.draw(frameRate);
 
         //bullet update
-        for (int i = 0; i <= 1000; i++)
+        for (int i = 0; i <= 5000; i++)
         {
-            if (bulletx[i] == NULL && bullety[i] == NULL)
+            if (bulletx[i] == NULL&& bullety[i] == NULL)
             {
                 continue;
             }
             if (levelbullet[i] == 1)
             {
                 BulletSprite.setTexture(BulletTexture);
-                BulletSprite.setTextureRect(sf::IntRect(1,1,7,7));
+                BulletSprite.setTextureRect(sf::IntRect(189, 14, 20, 15));
             }
             if (levelbullet[i] == 2)
             {
                 BulletSprite.setTexture(BulletTexture);
-                BulletSprite.setTextureRect(sf::IntRect(109,1,11,11));
+                BulletSprite.setTextureRect(sf::IntRect(211, 14, 20, 15));
             }
             if (levelbullet[i] == 3)
             {
                 BulletSprite.setTexture(BulletTexture);
-                BulletSprite.setTextureRect(sf::IntRect(0, 12, 15, 15));
+                BulletSprite.setTextureRect(sf::IntRect(233, 14, 20, 15));
             }
-            if (levelbullet[i] == 4)
-            {
-                BulletSprite.setTexture(BulletTexture);
-                BulletSprite.setTextureRect(sf::IntRect(189, 14, 20, 15));
-            }
-            bullety[i] = bullety[i] - PBulletVelocity * timeElapsed.asSeconds()*1000;
+            bullety[i] = bullety[i] - PBulletVelocity * timeElapsed.asSeconds() * 1000;
             BulletSprite.setPosition(bulletx[i], bullety[i]);
 
-            /*
-            if (enemie.getGlobalBounds().intersects(BulletSprite.getGlobalBounds())) {
-                colliy = 2839;
+            if (enemie.getGlobalBounds().intersects(BulletSprite.getGlobalBounds())&&gamephase==1) {
+                bigExplosion.setPosition(enemie.getPosition());
+                explosionx[bigExplosionnow] = enemie.getPosition().x;
+                explosiony[bigExplosionnow] = enemie.getPosition().y;
+                bigExplosionAnimation[bigExplosionnow] = 0;
+                float random = rand() % screensizey;
+                enemie.setPosition(random, -100.f);
                 bullety[i] = NULL;
                 bulletx[i] = NULL;
                 BulletSprite.setPosition(NULL, NULL);
+                score++;
+                bigExplosionnow++;
             }
-            */
-
-            if (boss.getGlobalBounds().intersects(BulletSprite.getGlobalBounds())&&gamephase==2) {
-                bosshealth=bosshealth - levelbullet[i];
+            if (boss.getGlobalBounds().intersects(BulletSprite.getGlobalBounds()) && gamephase == 3) {
+                
+                //small/meduim explosion
+                
+                if (bosshealth % 100 == 0) {
+                    float random = rand() % 1400 / 10;
+                    explosionx[bigExplosionnow] = boss.getPosition().x + random - 40.f;
+                    random = rand() % 1620 / 10;
+                    explosiony[bigExplosionnow] = boss.getPosition().y + random - 40.f;
+                    bigExplosionAnimation[bigExplosionnow] = 0;
+                    bigExplosionnow++;
+                }
+                bosshealth = bosshealth -1;
                 bullety[i] = NULL;
                 bulletx[i] = NULL;
                 BulletSprite.setPosition(NULL, NULL);
@@ -244,14 +279,14 @@ int main()
             }
             window.draw(BulletSprite);
         }
-        for (int i = 0; i <= 1000; i++)
+        for (int i = 0; i <= 5000; i++)
         {
             if (bbulletx[i] == NULL && bbullety[i] == NULL)
             {
                 continue;
             }
-            bbullety[i] = bbullety[i] + timeElapsed.asSeconds() * 1000 * bvel[i] * sin(bdeg[i]);
-            bbulletx[i] = bbulletx[i] + timeElapsed.asSeconds() * 1000 * bvel[i] * cos(bdeg[i]);
+            bbullety[i] = bbullety[i] + deltatime * 1000 * bvel[i] * sin(bdeg[i]);
+            bbulletx[i] = bbulletx[i] + deltatime * 1000 * bvel[i] * cos(bdeg[i]);
             BB.setPosition(bbulletx[i], bbullety[i]);
             if (btype[i] == 1) //meduim pink
             {
@@ -278,7 +313,7 @@ int main()
                 BB.setTextureRect(sf::IntRect(57, 48, 14, 14));
             }
             window.draw(BB);
-            
+
             //player hit bullet
             if (hitbox.getGlobalBounds().intersects(BB.getGlobalBounds())) {
                 std::cout << "Hit" << endl;
@@ -291,28 +326,59 @@ int main()
 
 
             //out of bound
-            if (bbullety[i] < -20||bbullety[i]>screensizey||bbulletx[i]<-20||bbulletx[i]>screensizex){
+            if (bbullety[i] < -20 || bbullety[i]>screensizey || bbulletx[i]<-20 || bbulletx[i]>screensizex) {
                 bbullety[i] = NULL;
                 bbulletx[i] = NULL;
             }
 
         }
 
-        /*
+
         //collision
-        window.draw(enemie);
-        enemie.move(0.f, timeElapsed.asMilliseconds()*.3f);
-        colliy++;
-        if (colliy == 2840)
-        {
-            Random = rand() % 470;
-            enemie.setPosition(Random, -100.f);
-            colliy = 0;
+        if (gamephase==1) {
+            window.draw(enemie);
+            enemie.move(0.f, deltatime *300.f);
+            if (enemie.getPosition().y >= screensizey)
+            {
+                Random = rand() % 470;
+                enemie.setPosition(Random, -100.f);
+            }
         }
-        */
+
+        std::cout << "Score : " << score << endl;
+
+        //gamephase
+        if (score >= 5&&gamephase==1) { gamephase = 2; }
+        if (gamephase == 2)
+        {
+            boss.move(0.f,deltatime*50.f);
+            window.draw(boss);
+        }
+        if (boss.getPosition().y >= 0 && gamephase == 2) { gamephase = 3; }
+        if (bosshealth <= 0&&gamephase==3) { gamephase = 4; }
+        if (gamephase == 4)
+        {
+            window.draw(boss);
+            if (bossdefeatexplosion > 0.1) {
+                float random = rand() % 1400 / 10;
+                explosionx[bigExplosionnow] = boss.getPosition().x + random - 40.f;
+                random = rand() % 1620 / 10;
+                explosiony[bigExplosionnow] = boss.getPosition().y + random - 40.f;
+                bigExplosionAnimation[bigExplosionnow] = 0;
+                bigExplosionnow++;
+                bossdefeatexplosion = 0;
+                bossdefeatexplosioncount++;
+            }
+            else bossdefeatexplosion = bossdefeatexplosion + deltatime;
+        }
+        if (bossdefeatexplosioncount >= 100) { gamephase = 5; }
+        if (gamephase == 5)
+        {
+            boss.setPosition(NULL, NULL);
+        }
 
         //boss
-        if (gamephase == 2) 
+        if (gamephase == 3) 
         {
             window.draw(boss);
             bosstotalbullet = bosstotalbullet % 1000;
@@ -342,10 +408,10 @@ int main()
                 bvel[bosstotalbullet] = 0.1;
                 btype[bosstotalbullet] = 1;
                 bosstotalbullet++;
-                bosscooldown1 = 30;
+                bosscooldown1 = 0.2;
                 degree1 = degree1 + Pi / 25 + 0.001;
             }
-            else { bosscooldown1 = bosscooldown1 - 1; }
+            else { bosscooldown1 = bosscooldown1 - deltatime; }
 
             if (bosscooldown2 <= 0)
             {
@@ -399,9 +465,58 @@ int main()
                     bosstotalbullet++;
                 }
                 degree2 = degree2 + 0.1;
-                bosscooldown2 = 1000;
+                bosscooldown2 = 5;
             }
-            else { bosscooldown2 = bosscooldown2 - 1; }
+            else { bosscooldown2 = bosscooldown2 - deltatime; }
+        }
+
+
+        //explosion update
+        if (bigExplosionnow == 100)bigExplosionnow = 0;
+        explosiontime = explosiontime + deltatime;
+        if (explosiontime > 0.03)
+        {
+            explosiontime = 0;
+            for (int i = 0; i < 100; i++)
+            {
+                bigExplosionAnimation[i]++;
+            }
+        }
+        for (int i = 0; i < 100; i++) {
+            switch (bigExplosionAnimation[i])
+            {
+            case 0: bigExplosion.setTextureRect(sf::IntRect(0, 0, 85, 85)); break;
+            case 1: bigExplosion.setTextureRect(sf::IntRect(85, 0, 85, 85)); break;
+            case 2: bigExplosion.setTextureRect(sf::IntRect(170, 0, 76, 85)); break;
+            case 3: bigExplosion.setTextureRect(sf::IntRect(245, 0, 82, 85)); break;
+            case 4: bigExplosion.setTextureRect(sf::IntRect(325, 0, 84, 85)); break;
+            case 5: bigExplosion.setTextureRect(sf::IntRect(410, 0, 84, 85)); break;
+            case 6: bigExplosion.setTextureRect(sf::IntRect(492, 0, 84, 85)); break;
+            case 7: bigExplosion.setTextureRect(sf::IntRect(0, 85, 84, 85)); break;
+            case 8: bigExplosion.setTextureRect(sf::IntRect(83, 85, 80, 85)); break;
+            case 9: bigExplosion.setTextureRect(sf::IntRect(163, 85, 80, 85)); break;
+            case 10: bigExplosion.setTextureRect(sf::IntRect(243, 85, 80, 85)); break;
+            case 11: bigExplosion.setTextureRect(sf::IntRect(321, 85, 80, 85)); break;
+            case 12: bigExplosion.setTextureRect(sf::IntRect(400, 85, 80, 85)); break;
+            case 13: bigExplosion.setTextureRect(sf::IntRect(480, 85, 80, 85)); break;
+            case 14: bigExplosion.setTextureRect(sf::IntRect(1, 174, 80, 85)); break;
+            case 15: bigExplosion.setTextureRect(sf::IntRect(80, 174, 75, 85)); break;
+            case 16: bigExplosion.setTextureRect(sf::IntRect(153, 174, 73, 85)); break;
+            case 17: bigExplosion.setTextureRect(sf::IntRect(223, 174, 73, 85)); break;
+            case 18: bigExplosion.setTextureRect(sf::IntRect(293, 174, 73, 85)); break;
+            case 19: bigExplosion.setTextureRect(sf::IntRect(366, 174, 70, 85)); break;
+            case 20: bigExplosion.setTextureRect(sf::IntRect(433, 174, 65, 85)); break;
+            case 21: bigExplosion.setTextureRect(sf::IntRect(495, 174, 65, 85)); break;
+            case 22: bigExplosion.setTextureRect(sf::IntRect(0, 263, 65, 85)); break;
+            case 23: bigExplosion.setTextureRect(sf::IntRect(61, 263, 65, 85)); break;
+            case 24: bigExplosion.setTextureRect(sf::IntRect(120, 263, 65, 85)); break;
+            case 25: bigExplosion.setTextureRect(sf::IntRect(178, 263, 65, 85)); break;
+            case 26: bigExplosion.setTextureRect(sf::IntRect(232, 263, 65, 85)); break;
+            case 27: bigExplosion.setTextureRect(sf::IntRect(282, 263, 65, 85)); break;
+            case 28: bigExplosion.setPosition(NULL - 100, NULL - 100); explosionx[i] = NULL - 100; explosiony[i] = NULL - 100; break;
+            }
+            bigExplosion.setPosition(explosionx[i],explosiony[i]);
+            window.draw(bigExplosion);
         }
 
         //player health
@@ -419,7 +534,7 @@ int main()
         }
 
         //boss health
-        if (gamephase == 2) 
+        if (gamephase == 3) 
         {
             window.draw(bossHealthCap);
             window.draw(bossHealthBase);
@@ -439,35 +554,35 @@ int main()
         window.display();
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) && PlayerSprite.getPosition().x < screensizex-40)
         {
-            PlayerSprite.setPosition(PlayerSprite.getPosition().x + PlayerVelocity * timeElapsed.asSeconds()*1000,
+            PlayerSprite.setPosition(PlayerSprite.getPosition().x + PlayerVelocity * deltatime *1000,
                 PlayerSprite.getPosition().y);
-            hitbox.setPosition(hitbox.getPosition().x + PlayerVelocity * timeElapsed.asSeconds() * 1000,
+            hitbox.setPosition(hitbox.getPosition().x + PlayerVelocity * deltatime * 1000,
                 hitbox.getPosition().y);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) && PlayerSprite.getPosition().x > 0)
         {
-            PlayerSprite.setPosition(PlayerSprite.getPosition().x - PlayerVelocity * timeElapsed.asSeconds() * 1000,
+            PlayerSprite.setPosition(PlayerSprite.getPosition().x - PlayerVelocity * deltatime * 1000,
                 PlayerSprite.getPosition().y);
-            hitbox.setPosition(hitbox.getPosition().x - PlayerVelocity * timeElapsed.asSeconds() * 1000,
+            hitbox.setPosition(hitbox.getPosition().x - PlayerVelocity * deltatime * 1000,
                 hitbox.getPosition().y);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && PlayerSprite.getPosition().y > 0)
         {
             PlayerSprite.setPosition(PlayerSprite.getPosition().x,
-                PlayerSprite.getPosition().y - PlayerVelocity * timeElapsed.asSeconds() * 1000);
+                PlayerSprite.getPosition().y - PlayerVelocity * deltatime * 1000);
             hitbox.setPosition(hitbox.getPosition().x,
-                hitbox.getPosition().y - PlayerVelocity * timeElapsed.asSeconds() * 1000);
+                hitbox.getPosition().y - PlayerVelocity * deltatime * 1000);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) && PlayerSprite.getPosition().y < screensizey - 37)
         {
             PlayerSprite.setPosition(PlayerSprite.getPosition().x,
-                PlayerSprite.getPosition().y + PlayerVelocity * timeElapsed.asSeconds() * 1000);
+                PlayerSprite.getPosition().y + PlayerVelocity * deltatime * 1000);
             hitbox.setPosition(hitbox.getPosition().x,
-                hitbox.getPosition().y + PlayerVelocity * timeElapsed.asSeconds() * 1000);
+                hitbox.getPosition().y + PlayerVelocity * deltatime * 1000);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)&&blank>0&&blankcooldown<=0)
         {
-            for (int i = 0; i <= 1000; i++)
+            for (int i = 0; i <= 5000; i++)
             {
                 bbulletx[i] = { NULL };
                 bbullety[i] = { NULL };
@@ -475,7 +590,7 @@ int main()
             blank--;
             blankcooldown = 1000;
         }
-        else { blankcooldown = blankcooldown - timeElapsed.asSeconds() * 1000; }
+        else { blankcooldown = blankcooldown - deltatime * 1000; }
 
 
 
@@ -493,51 +608,58 @@ int main()
 
         //player bullet
 
-        if (cooldown <= 0)
+        if (cooldown <= 0&&gamephase!=2&&gamephase!=4)
         {
             totalbullet = totalbullet % 1000;
-            if (bulletlevel == 1) 
-            {
-                bulletx[totalbullet] = PlayerSprite.getPosition().x + 16.5;
-                bullety[totalbullet] = PlayerSprite.getPosition().y;
-            }
-            if (bulletlevel == 2)
-            {
-                bulletx[totalbullet] = PlayerSprite.getPosition().x + 14.5;
-                bullety[totalbullet] = PlayerSprite.getPosition().y;
-            }
-            if (bulletlevel == 3)
-            {
-                bulletx[totalbullet] = PlayerSprite.getPosition().x + 12.5;
-                bullety[totalbullet] = PlayerSprite.getPosition().y;
-            }
-            if (bulletlevel == 4)
+            if (bulletlevel == 1)
             {
                 bulletx[totalbullet] = PlayerSprite.getPosition().x + 9.5;
                 bullety[totalbullet] = PlayerSprite.getPosition().y;
+                levelbullet[totalbullet] = bulletlevel;
+                totalbullet++;
             }
-            levelbullet[totalbullet] = bulletlevel;
-            totalbullet++;
-            cooldown = 250;
+            if (bulletlevel == 2)
+            {
+                bulletx[totalbullet] = PlayerSprite.getPosition().x;
+                bullety[totalbullet] = PlayerSprite.getPosition().y;
+                levelbullet[totalbullet] = bulletlevel;
+                totalbullet++;
+                bulletx[totalbullet] = PlayerSprite.getPosition().x+19;
+                bullety[totalbullet] = PlayerSprite.getPosition().y;
+                levelbullet[totalbullet] = bulletlevel;
+                totalbullet++;
+            }
+            if (bulletlevel == 3)
+            {
+                bulletx[totalbullet] = PlayerSprite.getPosition().x;
+                bullety[totalbullet] = PlayerSprite.getPosition().y;
+                levelbullet[totalbullet] = bulletlevel;
+                totalbullet++;
+                bulletx[totalbullet] = PlayerSprite.getPosition().x + 19;
+                bullety[totalbullet] = PlayerSprite.getPosition().y;
+                levelbullet[totalbullet] = bulletlevel;
+                totalbullet++;
+                bulletx[totalbullet] = PlayerSprite.getPosition().x + 9.5;
+                bullety[totalbullet] = PlayerSprite.getPosition().y -10.f;
+                levelbullet[totalbullet] = bulletlevel;
+                totalbullet++;
+            }
+            cooldown = 100;
         }
         else
         {
             cooldown = cooldown - timeElapsed.asSeconds()*1000;
         }
         
-        /*
+     
         //player hit with enemie
         if (enemie.getGlobalBounds().intersects(hitbox.getGlobalBounds())) {
-            cout << "Hit";
-            PlayerSprite.setPosition(spawnPoint);
-            hitbox.setPosition(hbspawnPoint);
+            playerhealth--;
+            enemie.setPosition(rand()%screensizex,-100);
         }
-        */
-
-        if (bosshealth <= 0)
-        {
-            window.close();
-        }
+       
+        std::cout << bosshealth<<endl;
+        std::cout << gamephase << endl;
         if (playerhealth <= 0)
         {
             window.close();
