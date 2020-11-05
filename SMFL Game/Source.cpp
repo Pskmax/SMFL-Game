@@ -158,7 +158,27 @@ int main()
     bossHealthCap.setTexture(bossHealthTexture);
     bossHealthCap.setTextureRect(sf::IntRect(0, 0, 14, 3));
     bossHealthCap.setPosition(screensizex-19, 398 - 2 * bossmaxhealth/10);
+    int Explosionnow = 0;
+    int ExplosionAnimation[110] = { NULL };
+    double explosiontime = 0;
+    float explosionx[110] = { NULL };
+    float explosiony[110] = { NULL };
+    int ExplosionSize[110] = { NULL };
+    for (int i = 0; i < 110; i++)
+    {
+        explosionx[i] = NULL - 100;
+        explosiony[i] = NULL - 100;
 
+    }
+    //small explosion
+    sf::Sprite smallExplosion;
+    sf::Texture smallExplosionTexture;
+    smallExplosion.setTexture(smallExplosionTexture);
+    smallExplosion.setTextureRect(sf::IntRect(0, 0, 36, 47));
+    if (!smallExplosionTexture.loadFromFile("resources/Smallexplosion.png"))
+    {
+        std::cout << "Load Failed" << endl;
+    }
     //big explosion
     sf::Sprite bigExplosion;
     sf::Texture bigExplosionTexture;
@@ -167,17 +187,6 @@ int main()
     if (!bigExplosionTexture.loadFromFile("resources/Bigexplosion.png"))
     {
         std::cout << "Load Failed" << endl;
-    }
-    int bigExplosionnow = 0;
-    int bigExplosionAnimation[100] = {NULL};
-    double explosiontime = 0;
-    float explosionx[100] = {NULL};
-    float explosiony[100] = {NULL};
-    for (int i = 0; i < 100; i++)
-    {
-        explosionx[i] = NULL - 100;
-        explosiony[i] = NULL - 100;
-
     }
     double bossdefeatexplosion = 0;
     int bossdefeatexplosioncount = 0;
@@ -238,33 +247,49 @@ int main()
                 BulletSprite.setTexture(BulletTexture);
                 BulletSprite.setTextureRect(sf::IntRect(233, 14, 20, 15));
             }
-            bullety[i] = bullety[i] - PBulletVelocity * timeElapsed.asSeconds() * 1000;
+            if (levelbullet[i] == 4)
+            {
+                BulletSprite.setTexture(BulletTexture);
+                BulletSprite.setTextureRect(sf::IntRect(255, 14, 20, 15));
+            }
+            bullety[i] = bullety[i] - PBulletVelocity * timeElapsed.asSeconds() * 1200;
             BulletSprite.setPosition(bulletx[i], bullety[i]);
 
             if (enemie.getGlobalBounds().intersects(BulletSprite.getGlobalBounds())&&gamephase==1) {
                 bigExplosion.setPosition(enemie.getPosition());
-                explosionx[bigExplosionnow] = enemie.getPosition().x;
-                explosiony[bigExplosionnow] = enemie.getPosition().y;
-                bigExplosionAnimation[bigExplosionnow] = 0;
+                explosionx[Explosionnow] = enemie.getPosition().x;
+                explosiony[Explosionnow] = enemie.getPosition().y;
+                ExplosionAnimation[Explosionnow] = 0;
+                ExplosionSize[Explosionnow] = 3;
                 float random = rand() % screensizey;
                 enemie.setPosition(random, -100.f);
                 bullety[i] = NULL;
                 bulletx[i] = NULL;
                 BulletSprite.setPosition(NULL, NULL);
                 score++;
-                bigExplosionnow++;
+                Explosionnow++;
             }
             if (boss.getGlobalBounds().intersects(BulletSprite.getGlobalBounds()) && gamephase == 3) {
                 
-                //small/meduim explosion
+                //medium explosion
                 
                 if (bosshealth % 100 == 0) {
                     float random = rand() % 1400 / 10;
-                    explosionx[bigExplosionnow] = boss.getPosition().x + random - 40.f;
+                    explosionx[Explosionnow] = boss.getPosition().x + random - 40.f;
                     random = rand() % 1620 / 10;
-                    explosiony[bigExplosionnow] = boss.getPosition().y + random - 40.f;
-                    bigExplosionAnimation[bigExplosionnow] = 0;
-                    bigExplosionnow++;
+                    explosiony[Explosionnow] = boss.getPosition().y + random - 40.f;
+                    ExplosionAnimation[Explosionnow] = 0;
+                    ExplosionSize[Explosionnow] = 3;
+                    Explosionnow++;
+                }
+                if (bosshealth % 10 == 0) {
+                    float random = rand() % 1400 / 10;
+                    explosionx[Explosionnow] = boss.getPosition().x + random;
+                    random = rand() % 1620 / 10;
+                    explosiony[Explosionnow] = boss.getPosition().y + random;
+                    ExplosionAnimation[Explosionnow] = 0;
+                    ExplosionSize[Explosionnow] = 1;
+                    Explosionnow++;
                 }
                 bosshealth = bosshealth -1;
                 bullety[i] = NULL;
@@ -361,11 +386,12 @@ int main()
             window.draw(boss);
             if (bossdefeatexplosion > 0.1) {
                 float random = rand() % 1400 / 10;
-                explosionx[bigExplosionnow] = boss.getPosition().x + random - 40.f;
+                explosionx[Explosionnow] = boss.getPosition().x + random - 40.f;
                 random = rand() % 1620 / 10;
-                explosiony[bigExplosionnow] = boss.getPosition().y + random - 40.f;
-                bigExplosionAnimation[bigExplosionnow] = 0;
-                bigExplosionnow++;
+                explosiony[Explosionnow] = boss.getPosition().y + random - 40.f;
+                ExplosionAnimation[Explosionnow] = 0;
+                ExplosionSize[Explosionnow] = 3;
+                Explosionnow++;
                 bossdefeatexplosion = 0;
                 bossdefeatexplosioncount++;
             }
@@ -472,52 +498,90 @@ int main()
 
 
         //explosion update
-        if (bigExplosionnow == 100)bigExplosionnow = 0;
+        if (Explosionnow >= 100)Explosionnow = 0;
         explosiontime = explosiontime + deltatime;
         if (explosiontime > 0.03)
         {
             explosiontime = 0;
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 110; i++)
             {
-                bigExplosionAnimation[i]++;
+                ExplosionAnimation[i]++;
             }
         }
-        for (int i = 0; i < 100; i++) {
-            switch (bigExplosionAnimation[i])
-            {
-            case 0: bigExplosion.setTextureRect(sf::IntRect(0, 0, 85, 85)); break;
-            case 1: bigExplosion.setTextureRect(sf::IntRect(85, 0, 85, 85)); break;
-            case 2: bigExplosion.setTextureRect(sf::IntRect(170, 0, 76, 85)); break;
-            case 3: bigExplosion.setTextureRect(sf::IntRect(245, 0, 82, 85)); break;
-            case 4: bigExplosion.setTextureRect(sf::IntRect(325, 0, 84, 85)); break;
-            case 5: bigExplosion.setTextureRect(sf::IntRect(410, 0, 84, 85)); break;
-            case 6: bigExplosion.setTextureRect(sf::IntRect(492, 0, 84, 85)); break;
-            case 7: bigExplosion.setTextureRect(sf::IntRect(0, 85, 84, 85)); break;
-            case 8: bigExplosion.setTextureRect(sf::IntRect(83, 85, 80, 85)); break;
-            case 9: bigExplosion.setTextureRect(sf::IntRect(163, 85, 80, 85)); break;
-            case 10: bigExplosion.setTextureRect(sf::IntRect(243, 85, 80, 85)); break;
-            case 11: bigExplosion.setTextureRect(sf::IntRect(321, 85, 80, 85)); break;
-            case 12: bigExplosion.setTextureRect(sf::IntRect(400, 85, 80, 85)); break;
-            case 13: bigExplosion.setTextureRect(sf::IntRect(480, 85, 80, 85)); break;
-            case 14: bigExplosion.setTextureRect(sf::IntRect(1, 174, 80, 85)); break;
-            case 15: bigExplosion.setTextureRect(sf::IntRect(80, 174, 75, 85)); break;
-            case 16: bigExplosion.setTextureRect(sf::IntRect(153, 174, 73, 85)); break;
-            case 17: bigExplosion.setTextureRect(sf::IntRect(223, 174, 73, 85)); break;
-            case 18: bigExplosion.setTextureRect(sf::IntRect(293, 174, 73, 85)); break;
-            case 19: bigExplosion.setTextureRect(sf::IntRect(366, 174, 70, 85)); break;
-            case 20: bigExplosion.setTextureRect(sf::IntRect(433, 174, 65, 85)); break;
-            case 21: bigExplosion.setTextureRect(sf::IntRect(495, 174, 65, 85)); break;
-            case 22: bigExplosion.setTextureRect(sf::IntRect(0, 263, 65, 85)); break;
-            case 23: bigExplosion.setTextureRect(sf::IntRect(61, 263, 65, 85)); break;
-            case 24: bigExplosion.setTextureRect(sf::IntRect(120, 263, 65, 85)); break;
-            case 25: bigExplosion.setTextureRect(sf::IntRect(178, 263, 65, 85)); break;
-            case 26: bigExplosion.setTextureRect(sf::IntRect(232, 263, 65, 85)); break;
-            case 27: bigExplosion.setTextureRect(sf::IntRect(282, 263, 65, 85)); break;
-            case 28: bigExplosion.setPosition(NULL - 100, NULL - 100); explosionx[i] = NULL - 100; explosiony[i] = NULL - 100; break;
+        for (int i = 0; i < 110; i++) {
+            if (ExplosionSize[i] == 1) {
+                switch (ExplosionAnimation[i]) {
+                case 0:smallExplosion.setTextureRect(sf::IntRect(0, 0, 36, 47)); break;
+                case 1:smallExplosion.setTextureRect(sf::IntRect(36, 0, 36, 47)); break;
+                case 2:smallExplosion.setTextureRect(sf::IntRect(71, 0, 34, 47)); break;
+                case 3:smallExplosion.setTextureRect(sf::IntRect(102, 0, 34, 47)); break;
+                case 4:smallExplosion.setTextureRect(sf::IntRect(137, 0, 34, 47)); break;
+                case 5:smallExplosion.setTextureRect(sf::IntRect(170, 0, 34, 47)); break;
+                case 6:smallExplosion.setTextureRect(sf::IntRect(204, 0, 34, 47)); break;
+                case 7:smallExplosion.setTextureRect(sf::IntRect(237, 0, 34, 47)); break;
+                case 8:smallExplosion.setTextureRect(sf::IntRect(270, 0, 34, 47)); break;
+                case 9:smallExplosion.setTextureRect(sf::IntRect(303, 0, 34, 47)); break;
+                case 10:smallExplosion.setTextureRect(sf::IntRect(336, 0, 34, 47)); break;
+                case 11:smallExplosion.setTextureRect(sf::IntRect(369, 0, 34, 47)); break;
+                case 12:smallExplosion.setTextureRect(sf::IntRect(402, 0, 34, 47)); break;
+                case 13:smallExplosion.setTextureRect(sf::IntRect(434, 0, 34, 47)); break;
+                case 14:smallExplosion.setTextureRect(sf::IntRect(466, 0, 34, 47)); break;
+                case 15:smallExplosion.setTextureRect(sf::IntRect(497, 0, 34, 47)); break;
+                case 16:smallExplosion.setTextureRect(sf::IntRect(527, 0, 33, 47)); break;
+                case 17:smallExplosion.setTextureRect(sf::IntRect(557, 0, 33, 47)); break;
+                case 18:smallExplosion.setTextureRect(sf::IntRect(0, 47, 33, 47)); break;
+                case 19:smallExplosion.setTextureRect(sf::IntRect(30, 47, 31, 47)); break;
+                case 20:smallExplosion.setTextureRect(sf::IntRect(58, 47, 29, 47)); break;
+                case 21:smallExplosion.setTextureRect(sf::IntRect(84, 47, 27, 47)); break;
+                case 22:smallExplosion.setTextureRect(sf::IntRect(109, 47, 26, 47)); break;
+                case 23:smallExplosion.setTextureRect(sf::IntRect(134, 47, 26, 47)); break;
+                case 24:smallExplosion.setTextureRect(sf::IntRect(159, 47, 26, 47)); break;
+                case 25:smallExplosion.setTextureRect(sf::IntRect(182, 47, 24, 47)); break;
+                case 26:smallExplosion.setTextureRect(sf::IntRect(204, 47, 24, 47)); break;
+                case 27:smallExplosion.setTextureRect(sf::IntRect(222, 47, 24, 47)); break;
+                case 28:smallExplosion.setPosition(NULL - 100, NULL - 100); explosionx[i] = NULL - 100; explosiony[i] = NULL - 100; break;
+                }
+                smallExplosion.setPosition(explosionx[i], explosiony[i]);
+                window.draw(smallExplosion);
             }
-            bigExplosion.setPosition(explosionx[i],explosiony[i]);
-            window.draw(bigExplosion);
-        }
+            if (ExplosionSize[i] == 3) {
+                switch (ExplosionAnimation[i])
+                {
+                case 0: bigExplosion.setTextureRect(sf::IntRect(0, 0, 85, 85)); break;
+                case 1: bigExplosion.setTextureRect(sf::IntRect(85, 0, 85, 85)); break;
+                case 2: bigExplosion.setTextureRect(sf::IntRect(170, 0, 76, 85)); break;
+                case 3: bigExplosion.setTextureRect(sf::IntRect(245, 0, 82, 85)); break;
+                case 4: bigExplosion.setTextureRect(sf::IntRect(325, 0, 84, 85)); break;
+                case 5: bigExplosion.setTextureRect(sf::IntRect(410, 0, 84, 85)); break;
+                case 6: bigExplosion.setTextureRect(sf::IntRect(492, 0, 84, 85)); break;
+                case 7: bigExplosion.setTextureRect(sf::IntRect(0, 85, 84, 85)); break;
+                case 8: bigExplosion.setTextureRect(sf::IntRect(83, 85, 80, 85)); break;
+                case 9: bigExplosion.setTextureRect(sf::IntRect(163, 85, 80, 85)); break;
+                case 10: bigExplosion.setTextureRect(sf::IntRect(243, 85, 80, 85)); break;
+                case 11: bigExplosion.setTextureRect(sf::IntRect(321, 85, 80, 85)); break;
+                case 12: bigExplosion.setTextureRect(sf::IntRect(400, 85, 80, 85)); break;
+                case 13: bigExplosion.setTextureRect(sf::IntRect(480, 85, 80, 85)); break;
+                case 14: bigExplosion.setTextureRect(sf::IntRect(1, 174, 80, 85)); break;
+                case 15: bigExplosion.setTextureRect(sf::IntRect(80, 174, 75, 85)); break;
+                case 16: bigExplosion.setTextureRect(sf::IntRect(153, 174, 73, 85)); break;
+                case 17: bigExplosion.setTextureRect(sf::IntRect(223, 174, 73, 85)); break;
+                case 18: bigExplosion.setTextureRect(sf::IntRect(293, 174, 73, 85)); break;
+                case 19: bigExplosion.setTextureRect(sf::IntRect(366, 174, 70, 85)); break;
+                case 20: bigExplosion.setTextureRect(sf::IntRect(433, 174, 65, 85)); break;
+                case 21: bigExplosion.setTextureRect(sf::IntRect(495, 174, 65, 85)); break;
+                case 22: bigExplosion.setTextureRect(sf::IntRect(0, 263, 65, 85)); break;
+                case 23: bigExplosion.setTextureRect(sf::IntRect(61, 263, 65, 85)); break;
+                case 24: bigExplosion.setTextureRect(sf::IntRect(120, 263, 65, 85)); break;
+                case 25: bigExplosion.setTextureRect(sf::IntRect(178, 263, 65, 85)); break;
+                case 26: bigExplosion.setTextureRect(sf::IntRect(232, 263, 65, 85)); break;
+                case 27: bigExplosion.setTextureRect(sf::IntRect(282, 263, 65, 85)); break;
+                case 28: bigExplosion.setPosition(NULL - 100, NULL - 100); explosionx[i] = NULL - 100; explosiony[i] = NULL - 100; break;
+                }
+                bigExplosion.setPosition(explosionx[i], explosiony[i]);
+                window.draw(bigExplosion);
+            }
+
+            }
 
         //player health
         window.draw(playerHealthCap);
@@ -641,6 +705,29 @@ int main()
                 totalbullet++;
                 bulletx[totalbullet] = PlayerSprite.getPosition().x + 9.5;
                 bullety[totalbullet] = PlayerSprite.getPosition().y -10.f;
+                levelbullet[totalbullet] = bulletlevel;
+                totalbullet++;
+            }
+            if (bulletlevel == 4)
+            {
+                bulletx[totalbullet] = PlayerSprite.getPosition().x-10.5;
+                bullety[totalbullet] = PlayerSprite.getPosition().y;
+                levelbullet[totalbullet] = bulletlevel;
+                totalbullet++;
+                bulletx[totalbullet] = PlayerSprite.getPosition().x + 29.5;
+                bullety[totalbullet] = PlayerSprite.getPosition().y;
+                levelbullet[totalbullet] = bulletlevel;
+                totalbullet++;
+                bulletx[totalbullet] = PlayerSprite.getPosition().x-0.5;
+                bullety[totalbullet] = PlayerSprite.getPosition().y - 10.f;
+                levelbullet[totalbullet] = bulletlevel;
+                totalbullet++;
+                bulletx[totalbullet] = PlayerSprite.getPosition().x+ 19.5;
+                bullety[totalbullet] = PlayerSprite.getPosition().y - 10.f;
+                levelbullet[totalbullet] = bulletlevel;
+                totalbullet++;
+                bulletx[totalbullet] = PlayerSprite.getPosition().x + 9.5;
+                bullety[totalbullet] = PlayerSprite.getPosition().y - 20.f;
                 levelbullet[totalbullet] = bulletlevel;
                 totalbullet++;
             }
