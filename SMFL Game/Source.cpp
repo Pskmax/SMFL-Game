@@ -17,10 +17,15 @@ int main()
     int bossmaxhealth = 1000;
     int bosshealth = bossmaxhealth;
     int r = 0.2;
-    int maxhealth = 100;
+    int maxhealth = 5;
     int playerhealth = maxhealth;
-    int gamephase = 1; // 1 for stage, 2 for boss intro ,3 for boss fight
+    int gamephase = 0; // 1 for stage, 2 for boss intro ,3 for boss fight
     int score=0;
+    int timebonus = 0;
+    int healthbonus = 0;
+    int bossbonus = 0;
+    float sumtime = 0;
+    float phasetime = 0;
     const double Pi = 3.14159265358979323846;
     unsigned int screensizex = 480, screensizey = 650;
 
@@ -111,12 +116,105 @@ int main()
     {
         std::cout << "Load failed" << std::endl;
     }
+    /*
     sf::Text frameRate;
     frameRate.setCharacterSize(20);
     frameRate.setFont(font);
     frameRate.setPosition(10, 10);
     frameRate.setFillColor(sf::Color::White);
-    
+    */
+    //score
+    sf::Text scoreText;
+    scoreText.setCharacterSize(20);
+    scoreText.setFont(font);
+    scoreText.setPosition(90, 10);
+    scoreText.setFillColor(sf::Color::White);
+    sf::Text scorebase;
+    scorebase.setCharacterSize(20);
+    scorebase.setFont(font);
+    scorebase.setPosition(10, 10);
+    scorebase.setFillColor(sf::Color::White);
+    scorebase.setString("Score :");
+    sf::Text stageTime;
+    stageTime.setCharacterSize(20);
+    stageTime.setFont(font);
+    stageTime.setPosition(230,200);
+    stageTime.setFillColor(sf::Color::White);
+    sf::Text stageTimeBase;
+    stageTimeBase.setCharacterSize(20);
+    stageTimeBase.setFont(font);
+    stageTimeBase.setPosition(150, 200);
+    stageTimeBase.setFillColor(sf::Color::White);
+    stageTimeBase.setString("Time :");
+    sf::Text stageTimeBonusBase;
+    stageTimeBonusBase.setCharacterSize(20);
+    stageTimeBonusBase.setFont(font);
+    stageTimeBonusBase.setPosition(150, 230);
+    stageTimeBonusBase.setFillColor(sf::Color::White);
+    stageTimeBonusBase.setString("Bonus :");
+    sf::Text stageTimeBonus;
+    stageTimeBonus.setCharacterSize(20);
+    stageTimeBonus.setFont(font);
+    stageTimeBonus.setPosition(230, 230);
+    stageTimeBonus.setFillColor(sf::Color::White);
+    sf::Text HealthBase;
+    HealthBase.setCharacterSize(20);
+    HealthBase.setFont(font);
+    HealthBase.setPosition(150, 260);
+    HealthBase.setFillColor(sf::Color::White);
+    HealthBase.setString("Health :");
+    sf::Text HealthText;
+    HealthText.setCharacterSize(20);
+    HealthText.setFont(font);
+    HealthText.setPosition(230, 260);
+    HealthText.setFillColor(sf::Color::White);
+    sf::Text HealthBonusBase;
+    HealthBonusBase.setCharacterSize(20);
+    HealthBonusBase.setFont(font);
+    HealthBonusBase.setPosition(150, 290);
+    HealthBonusBase.setFillColor(sf::Color::White);
+    HealthBonusBase.setString("Bonus :");
+    sf::Text HealthBonus;
+    HealthBonus.setCharacterSize(20);
+    HealthBonus.setFont(font);
+    HealthBonus.setPosition(230, 290);
+    HealthBonus.setFillColor(sf::Color::White);
+    sf::Text BossKilled;
+    BossKilled.setCharacterSize(20);
+    BossKilled.setFont(font);
+    BossKilled.setPosition(230, 320);
+    BossKilled.setFillColor(sf::Color::White);
+    sf::Text BossKilledBase;
+    BossKilledBase.setCharacterSize(20);
+    BossKilledBase.setFont(font);
+    BossKilledBase.setPosition(150, 320);
+    BossKilledBase.setFillColor(sf::Color::White);
+    BossKilledBase.setString("Boss :");
+    sf::Text BossKilledBonus;
+    BossKilledBonus.setCharacterSize(20);
+    BossKilledBonus.setFont(font);
+    BossKilledBonus.setPosition(230, 350);
+    BossKilledBonus.setFillColor(sf::Color::White);
+    sf::Text BossKilledBonusBase;
+    BossKilledBonusBase.setCharacterSize(20);
+    BossKilledBonusBase.setFont(font);
+    BossKilledBonusBase.setPosition(150, 350);
+    BossKilledBonusBase.setFillColor(sf::Color::White);
+    BossKilledBonusBase.setString("Bonus :");
+    float stagetimer = 0;
+    sf::Text StageText;
+    StageText.setCharacterSize(30);
+    StageText.setFont(font);
+    StageText.setPosition(180, 300);
+    StageText.setFillColor(sf::Color::White);
+    StageText.setString("Stage");
+    sf::Text Stage;
+    Stage.setCharacterSize(30);
+    Stage.setFont(font);
+    Stage.setPosition(260, 300);
+    Stage.setFillColor(sf::Color::White);
+
+
     //healthbar
     sf::Sprite playerHealthBase;
     sf::Texture playerHealthTexture;
@@ -221,14 +319,16 @@ int main()
         }
         window.draw(PlayerSprite);
         window.draw(hitbox);
+        /*
         //fps
         frameRate.setString(std::to_string(1.0f / timeElapsed.asSeconds()));
         window.draw(frameRate);
+        */
 
         //bullet update
         for (int i = 0; i <= 5000; i++)
         {
-            if (bulletx[i] == NULL&& bullety[i] == NULL)
+            if (bulletx[i] == NULL && bullety[i] == NULL)
             {
                 continue;
             }
@@ -255,7 +355,7 @@ int main()
             bullety[i] = bullety[i] - PBulletVelocity * timeElapsed.asSeconds() * 1200;
             BulletSprite.setPosition(bulletx[i], bullety[i]);
 
-            if (enemie.getGlobalBounds().intersects(BulletSprite.getGlobalBounds())&&gamephase==1) {
+            if (enemie.getGlobalBounds().intersects(BulletSprite.getGlobalBounds()) && gamephase == 1) {
                 bigExplosion.setPosition(enemie.getPosition());
                 explosionx[Explosionnow] = enemie.getPosition().x;
                 explosiony[Explosionnow] = enemie.getPosition().y;
@@ -270,9 +370,9 @@ int main()
                 Explosionnow++;
             }
             if (boss.getGlobalBounds().intersects(BulletSprite.getGlobalBounds()) && gamephase == 3) {
-                
+
                 //medium explosion
-                
+
                 if (bosshealth % 100 == 0) {
                     float random = rand() % 1400 / 10;
                     explosionx[Explosionnow] = boss.getPosition().x + random - 40.f;
@@ -291,7 +391,7 @@ int main()
                     ExplosionSize[Explosionnow] = 1;
                     Explosionnow++;
                 }
-                bosshealth = bosshealth -1;
+                bosshealth = bosshealth - 1;
                 bullety[i] = NULL;
                 bulletx[i] = NULL;
                 BulletSprite.setPosition(NULL, NULL);
@@ -360,9 +460,9 @@ int main()
 
 
         //collision
-        if (gamephase==1) {
+        if (gamephase == 1) {
             window.draw(enemie);
-            enemie.move(0.f, deltatime *300.f);
+            enemie.move(0.f, deltatime * 300.f);
             if (enemie.getPosition().y >= screensizey)
             {
                 Random = rand() % 470;
@@ -370,17 +470,23 @@ int main()
             }
         }
 
-        std::cout << "Score : " << score << endl;
 
         //gamephase
-        if (score >= 5&&gamephase==1) { gamephase = 2; }
+        if (gamephase == 0) {
+            Stage.setString(std::to_string(1));
+            window.draw(StageText);
+            window.draw(Stage);
+        }
+        if (gamephase == 0 && phasetime >= 3) { gamephase = 1; }
+        else phasetime = phasetime + deltatime;
+        if (score >= 5 && gamephase == 1) { gamephase = 2; }
         if (gamephase == 2)
         {
-            boss.move(0.f,deltatime*50.f);
+            boss.move(0.f, deltatime * 50.f);
             window.draw(boss);
         }
         if (boss.getPosition().y >= 0 && gamephase == 2) { gamephase = 3; }
-        if (bosshealth <= 0&&gamephase==3) { gamephase = 4; }
+        if (bosshealth <= 0 && gamephase == 3) { gamephase = 4; }
         if (gamephase == 4)
         {
             window.draw(boss);
@@ -398,13 +504,74 @@ int main()
             else bossdefeatexplosion = bossdefeatexplosion + deltatime;
         }
         if (bossdefeatexplosioncount >= 100) { gamephase = 5; }
-        if (gamephase == 5)
+        if (gamephase == 5) //stagescorecalculation
         {
-            boss.setPosition(NULL, NULL);
+            if (sumtime == 0)
+            {
+                timebonus = (200 - (int)stagetimer) * 5;
+                healthbonus = playerhealth * 100;
+                bossbonus = 500;
+                boss.setPosition(NULL, NULL);
+                stageTime.setString(std::to_string(stagetimer));
+                stageTimeBonus.setString(std::to_string(timebonus));
+                HealthText.setString(std::to_string(playerhealth));
+                HealthBonus.setString(std::to_string(healthbonus));
+                BossKilled.setString("Destroyed");
+                BossKilledBonus.setString(std::to_string(bossbonus));
+                score = score + timebonus + healthbonus + bossbonus;
+                scoreText.setString(std::to_string(score));
+                scoreText.setPosition(230, 400);
+                scorebase.setPosition(150, 400);
+            }
+            if (sumtime > 0.5)
+            {
+                window.draw(stageTimeBase);
+                window.draw(stageTime);
+            }
+            if (sumtime > 1)
+            {
+                window.draw(stageTimeBonusBase);
+                window.draw(stageTimeBonus);
+            }
+            if (sumtime > 1.5)
+            {
+                window.draw(HealthBase);
+                window.draw(HealthText);
+            }
+            if (sumtime > 2)
+            {
+                window.draw(HealthBonus);
+                window.draw(HealthBonusBase);
+            }
+            if (sumtime > 2.5)
+            {
+                window.draw(BossKilled);
+                window.draw(BossKilledBase);
+            }
+            if (sumtime > 3)
+            {
+                window.draw(BossKilledBonusBase);
+                window.draw(BossKilledBonus);
+            }
+            if (sumtime > 3.5)
+            {
+                window.draw(scoreText);
+                window.draw(scorebase);
+            }
+            sumtime = sumtime + deltatime;
+        }
+        else {
+            stagetimer = stagetimer + deltatime;
+            //score
+            scoreText.setString(std::to_string(score));
+            scoreText.setPosition(90, 10);
+            scorebase.setPosition(10, 10);
+            window.draw(scoreText);
+            window.draw(scorebase);
         }
 
         //boss
-        if (gamephase == 3) 
+        if (gamephase == 3)
         {
             window.draw(boss);
             bosstotalbullet = bosstotalbullet % 1000;
@@ -445,7 +612,7 @@ int main()
                 {
                     bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
                     bbullety[bosstotalbullet] = boss.getPosition().y + 160;
-                    bdeg[bosstotalbullet] = i * Pi / 10+ degree2;
+                    bdeg[bosstotalbullet] = i * Pi / 10 + degree2;
                     bvel[bosstotalbullet] = 0.1;
                     btype[bosstotalbullet] = 2;
                     bosstotalbullet++;
@@ -581,24 +748,24 @@ int main()
                 window.draw(bigExplosion);
             }
 
-            }
+        }
 
         //player health
         window.draw(playerHealthCap);
         window.draw(playerHealthBase);
         for (int healthi = 1; healthi <= maxhealth; healthi++)
         {
-            playerHealthEmpty.setPosition(5, 401 -2*healthi);
+            playerHealthEmpty.setPosition(5, 401 - 2 * healthi);
             window.draw(playerHealthEmpty);
         }
         for (int healthi = 1; healthi <= playerhealth; healthi++)
         {
-            playerHealthHave.setPosition(5, 401 - 2*healthi);
+            playerHealthHave.setPosition(5, 401 - 2 * healthi);
             window.draw(playerHealthHave);
         }
 
         //boss health
-        if (gamephase == 3) 
+        if (gamephase == 3)
         {
             window.draw(bossHealthCap);
             window.draw(bossHealthBase);
@@ -616,28 +783,28 @@ int main()
 
         //move
         window.display();
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) && PlayerSprite.getPosition().x < screensizex-40)
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D)|| sf::Joystick::getAxisPosition(0, sf::Joystick::X) >= 50 )&& PlayerSprite.getPosition().x < screensizex - 40)
         {
             PlayerSprite.setPosition(PlayerSprite.getPosition().x + PlayerVelocity * deltatime *1000,
                 PlayerSprite.getPosition().y);
             hitbox.setPosition(hitbox.getPosition().x + PlayerVelocity * deltatime * 1000,
                 hitbox.getPosition().y);
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) && PlayerSprite.getPosition().x > 0)
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A)|| sf::Joystick::getAxisPosition(0, sf::Joystick::X)<=-50) && PlayerSprite.getPosition().x > 0)
         {
             PlayerSprite.setPosition(PlayerSprite.getPosition().x - PlayerVelocity * deltatime * 1000,
                 PlayerSprite.getPosition().y);
             hitbox.setPosition(hitbox.getPosition().x - PlayerVelocity * deltatime * 1000,
                 hitbox.getPosition().y);
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && PlayerSprite.getPosition().y > 0)
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W)|| sf::Joystick::getAxisPosition(0, sf::Joystick::Y)<=-50) && PlayerSprite.getPosition().y > 0)
         {
             PlayerSprite.setPosition(PlayerSprite.getPosition().x,
                 PlayerSprite.getPosition().y - PlayerVelocity * deltatime * 1000);
             hitbox.setPosition(hitbox.getPosition().x,
                 hitbox.getPosition().y - PlayerVelocity * deltatime * 1000);
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) && PlayerSprite.getPosition().y < screensizey - 37)
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S)|| sf::Joystick::getAxisPosition(0, sf::Joystick::Y)>=50)&& PlayerSprite.getPosition().y < screensizey - 37)
         {
             PlayerSprite.setPosition(PlayerSprite.getPosition().x,
                 PlayerSprite.getPosition().y + PlayerVelocity * deltatime * 1000);
@@ -672,7 +839,7 @@ int main()
 
         //player bullet
 
-        if (cooldown <= 0&&gamephase!=2&&gamephase!=4)
+        if (cooldown <= 0&&gamephase!=2&&gamephase!=4&&gamephase!=5&&gamephase!=0)
         {
             totalbullet = totalbullet % 1000;
             if (bulletlevel == 1)
@@ -738,15 +905,12 @@ int main()
             cooldown = cooldown - timeElapsed.asSeconds()*1000;
         }
         
-     
         //player hit with enemie
         if (enemie.getGlobalBounds().intersects(hitbox.getGlobalBounds())) {
             playerhealth--;
             enemie.setPosition(rand()%screensizex,-100);
         }
        
-        std::cout << bosshealth<<endl;
-        std::cout << gamephase << endl;
         if (playerhealth <= 0)
         {
             window.close();
