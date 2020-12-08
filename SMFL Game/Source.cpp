@@ -9,10 +9,11 @@
 using namespace std;
 int main()
 {
-    int blank = 3, blankcooldown = 0, maxblank=blank;
+    int blank = 3, maxblank=blank;
+    float blankcooldown = 0;
     float bulletx[5500] = { NULL-1000 }, bullety[5500] = { NULL-1000 }, levelbullet[5500] = {NULL};
     float bbulletx[5500] = { NULL-1000 }, bbullety[5500] = { NULL-1000 }, bdeg[5500] = { NULL }, bvel[5500] = { NULL }, btype[5500] = {NULL};
-    float degree1 = 0,degree2 = 0;
+    float degree1 = 0,degree2 = 0,degree3=0;
     float playerAnimationTime = 0;
     int bosstotalbullet = 0;
     int totalbullet = 0;
@@ -20,6 +21,7 @@ int main()
     float cooldown = 0;
     float bosscooldown1 = 0;
     float bosscooldown2 = 0;
+    float bosscooldown3 = 0;
     int bossmaxhealth = 1000;
     int bosshealth = bossmaxhealth;
     int r = 0.2;
@@ -32,12 +34,21 @@ int main()
     int bossbonus = 0;
     int blankbonus = 0;
     float gamephase7timer = 0;
+    int gamephase7lesserspawned = 0;
+    float gamephase8timer = 0;
     float sumtime = 0;
     float phasetime = 0;
+    float boss2skill1degree = 0;
+    float boss2skill1oneloopcooldown = 0;
+    float invincible = 0;
+    float invincibleblinktime = 0;
+    int boss2skill1shotted = 0;
+    bool boss2skill1degreedirection = 0; //0 for left 1 for right
     const double Pi = 3.14159265358979323846;
     unsigned int screensizex = 480, screensizey = 650;
-    int menu = 2; //0=menu 1=game 2=gameover 
+    int menu = 0; //0=menu 1=game 2=gameover 
     bool gameoverscorecheck = 0;
+    bool blankusing = 0;
     //collision test
     srand(time(NULL));
     float Random = rand() % 380;
@@ -134,6 +145,38 @@ int main()
     BB.setTextureRect(sf::IntRect(540, 34, 20, 20));
     BB.setPosition(0, 0);
 
+    //powerup
+    sf::Sprite powerup;
+    sf::Texture poweruptexture;
+    powerup.setTexture(poweruptexture);
+    powerup.setTextureRect(sf::IntRect(1,1,13,13));//1,1//17,1//33,1//
+    float powerupVelocity = 300;
+    int powerupanimation[200] = { 0 };
+    float powerupx[200] = {NULL};
+    float powerupy[200] = {NULL};
+    int powerupnow = 0;
+    if (!poweruptexture.loadFromFile("resources/power.png"))
+    {
+        std::cout << "Load failed" << std::endl;
+    }
+    //blank circle
+    sf::CircleShape blankCircle;
+    blankCircle.setRadius(0);
+    blankCircle.setOutlineColor(sf::Color::White);
+    blankCircle.setOutlineThickness(5);
+    blankCircle.setFillColor(sf::Color(0, 0, 0, 0));
+    //warning
+    sf::Sprite warningSprite;
+    sf::Texture warningTexture;
+    warningSprite.setTexture(warningTexture);
+    if (!warningTexture.loadFromFile("resources/warning.png"))
+    {
+        std::cout << "Load failed" << endl;
+    }
+    warningSprite.setTextureRect(sf::IntRect(0,0,480,277));
+    warningSprite.setPosition(0.f,150.f);
+    warningSprite.setColor(sf::Color(255, 255, 255, 128));
+    float warningtimer = 0;
     //fps counter
     sf::Font font;
     if (!font.loadFromFile("resources/trebuc.ttf"))
@@ -323,9 +366,13 @@ int main()
     sf::Music victory;
     if (!victory.openFromFile("resources/victory.ogg"))
         return 0;
+    sf::Music warning;
+    if (!warning.openFromFile("resources/warning.ogg"))
+        return 0;
     stage.setVolume(30.f);
     bossmusic.setVolume(30.f);
     victory.setVolume(30.f);
+    warning.setVolume(30.f);
     //healthbar
     sf::Sprite playerHealthBase;
     sf::Texture playerHealthTexture;
@@ -527,14 +574,62 @@ int main()
                 Map1.setPosition(0.f, 0.f);
                 Map2.setPosition(0.f, -852.f);
             }
-            window.draw(PlayerSprite);
-            window.draw(hitbox);
+
+
+            //invincibleblink
+            if (invincible <= 0)
+            {
+                window.draw(PlayerSprite);
+                window.draw(hitbox);
+            }
+            else if (invincibleblinktime <= 0)
+            {
+                invincibleblinktime = 0.2;
+            }
+            else if (invincibleblinktime < 0.1)
+            {
+                window.draw(PlayerSprite);
+                window.draw(hitbox);
+            }
+            invincibleblinktime -= deltatime;
+            invincible -= deltatime;
+
+
+
             /*
             //fps
             frameRate.setString(std::to_string(1.0f / timeElapsed.asSeconds()));
             window.draw(frameRate);
             */
 
+            //powerup update
+            if (powerupnow > 100)
+            {
+                powerupnow = 0;
+            }
+            for (int i = 0; i < 150; i++)
+            {
+                if (powerupy[i] > screensizey)
+                {
+                    powerupx[i] = NULL;
+                    powerupy[i] = NULL;
+                }
+                if (powerupx[i] == NULL && powerupy[i] == NULL)
+                {
+                    continue;
+                }
+                powerupy[i] = powerupy[i] + deltatime * powerupVelocity;
+                powerup.setPosition(powerupx[i], powerupy[i]);
+                if (powerup.getGlobalBounds().intersects(PlayerSprite.getGlobalBounds()))
+                {
+                    powerupx[i] = NULL;
+                    powerupy[i] = NULL;
+                    if (bulletlevel < 4)
+                       bulletlevel++; 
+                    else score = score + 100;
+                }
+                window.draw(powerup);
+            }
             //bullet update
             for (int i = 0; i <= 5000; i++)
             {
@@ -571,7 +666,13 @@ int main()
                     explosiony[Explosionnow] = enemie.getPosition().y;
                     ExplosionAnimation[Explosionnow] = 0;
                     ExplosionSize[Explosionnow] = 3;
-                    float random = rand() % 380;
+                    float random = rand() % 2;
+                        if (random == 1) {
+                            powerupx[powerupnow] = enemie.getPosition().x + 44;
+                            powerupy[powerupnow] = enemie.getPosition().y;
+                            powerupnow++;
+                        }
+                    random = rand() % 380;
                     enemie.setPosition(random, -100.f);
                     bullety[i] = NULL;
                     bulletx[i] = NULL;
@@ -580,7 +681,6 @@ int main()
                     Explosionnow++;
                 }
                 //lesser (stage 2) hit by bullet
-                if (gamephase==7)
                 for (int j = 0; j < 150; j++)
                 {
                     if (lesserX[j] == NULL && lesserY[j] == NULL) continue;
@@ -591,16 +691,16 @@ int main()
                         bulletx[i] = NULL;
                         BulletSprite.setPosition(NULL, NULL);
                         float random = rand() % 90;
-                        explosionx[Explosionnow] = lesserX[j]+random;
+                        explosionx[Explosionnow] = lesserX[j] + random;
                         random = rand() % 90;
-                        explosiony[Explosionnow] = lesserY[j]+random;
+                        explosiony[Explosionnow] = lesserY[j] + random;
                         ExplosionAnimation[Explosionnow] = 0;
                         ExplosionSize[Explosionnow] = 1;
                         lesserHealth[j]--;
                         Explosionnow++;
                     }
                 }
-                if (boss.getGlobalBounds().intersects(BulletSprite.getGlobalBounds()) && gamephase == 3) {
+                if (boss.getGlobalBounds().intersects(BulletSprite.getGlobalBounds()) && (gamephase == 3 || gamephase == 10)) {
 
                     //medium explosion
 
@@ -670,15 +770,45 @@ int main()
                 {
                     BB.setTextureRect(sf::IntRect(57, 48, 14, 14));
                 }
+                if (btype[i] == 7)//small mint
+                {
+                    BB.setTextureRect(sf::IntRect(71, 48, 14, 14));
+                }
+                if (btype[i] == 8)//small cyan
+                {
+                    BB.setTextureRect(sf::IntRect(85, 48, 14, 14));
+                }
+                if (btype[i] == 9)//small blue
+                {
+                    BB.setTextureRect(sf::IntRect(99, 48, 14, 14));
+                }
+                if (btype[i] == 10)//small blue
+                {
+                    BB.setTextureRect(sf::IntRect(113, 48, 14, 14));
+                }
+                if (btype[i] == 11)//small pink
+                {
+                    BB.setTextureRect(sf::IntRect(127, 48, 14, 14));
+                }
+                if (btype[i] == 12)//small white
+                {
+                    BB.setTextureRect(sf::IntRect(141, 48, 14, 14));
+                }
+                if (btype[i] == 13)//small black
+                {
+                    BB.setTextureRect(sf::IntRect(155, 48, 14, 14));
+                }
                 window.draw(BB);
 
                 //player hit bullet
-                if (hitbox.getGlobalBounds().intersects(BB.getGlobalBounds())) {
+                if (hitbox.getGlobalBounds().intersects(BB.getGlobalBounds()) && invincible < 0) {
                     std::cout << "Hit" << endl;
                     playerhealth--;
                     BB.setPosition(NULL, NULL);
                     bbulletx[i] = NULL;
                     bbullety[i] = NULL;
+                    invincible = 1;
+
                 }
 
 
@@ -713,13 +843,39 @@ int main()
             }
             if (gamephase == 0 && phasetime >= 3) { gamephase = 1; }
             else phasetime = phasetime + deltatime;
-            if (score >= 5 && gamephase == 1) { stage.stop(); gamephase = 2; }
+            if (score >= 5 && gamephase == 1) { stage.stop(); gamephase = 2; warning.play(); warningtimer = 0; }
             if (gamephase == 2)
             {
+                warningtimer = warningtimer + deltatime;
+                if (warningtimer <= 4)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 255-(warningtimer-3)*255));
+                }
+                else if (warningtimer<=3)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 128+(warningtimer-2.5)*255));
+                }
+                else if (warningtimer <= 2.5)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 255-(warningtimer-2)*255));
+                }
+                else if (warningtimer <= 2)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 128+(warningtimer-1.5)*255));
+                }
+                else if (warningtimer <= 1.5)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 255-(warningtimer-1)*255));
+                }
+                else if (warningtimer <= 1)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, warningtimer*255));
+                }
                 boss.move(0.f, deltatime * 50.f);
                 window.draw(boss);
+                window.draw(warningSprite);
             }
-            if (boss.getPosition().y >= 0 && gamephase == 2) { bossmusic.play(); gamephase = 3; }
+            if (boss.getPosition().y >= 0 && gamephase == 2) { warning.stop(); bossmusic.play(); gamephase = 3; }
             if (bosshealth <= 0 && gamephase == 3) { gamephase = 4; }
             if (gamephase == 4)
             {
@@ -737,7 +893,7 @@ int main()
                 }
                 else bossdefeatexplosion = bossdefeatexplosion + deltatime;
             }
-            if (bossdefeatexplosioncount >= 100) { bossmusic.stop(); gamephase = 5; }
+            if (bossdefeatexplosioncount >= 100 && gamephase == 4) { bossmusic.stop(); gamephase = 5; }
             if (gamephase == 5) //stagescorecalculation
             {
                 if (sumtime == 0)
@@ -815,7 +971,8 @@ int main()
                     blank = 3;
                     phasetime = 0;
                     sumtime = 0;
-                    bosshealth = 1000;
+                    bossmaxhealth = 1500;
+                    bosshealth = bossmaxhealth;
                     scorebase.setCharacterSize(50);
                     scoreText.setCharacterSize(50);
                     for (int i = 0; i < 1050; i++)
@@ -836,15 +993,6 @@ int main()
                 }
                 sumtime = sumtime + deltatime;
             }
-            else {
-                stagetimer = stagetimer + deltatime;
-                //score
-                scoreText.setString(std::to_string(score));
-                scoreText.setPosition(90, 10);
-                scorebase.setPosition(10, 10);
-                window.draw(scoreText);
-                window.draw(scorebase);
-            }
             if (gamephase == 6) {
                 stage.play();
                 Stage.setString(std::to_string(2));
@@ -852,7 +1000,43 @@ int main()
                 window.draw(Stage);
             }
             if (gamephase == 6 && phasetime >= 3) { gamephase = 7; }
-
+            if (gamephase == 8)
+            {
+                gamephase8timer = gamephase8timer + deltatime;
+            }
+            if (gamephase8timer >= 5 && gamephase == 8) { stage.stop(); gamephase = 9; warning.play(); warningtimer = 0; }
+            if (gamephase == 9)
+            {
+                warningtimer = warningtimer + deltatime;
+                if (warningtimer <= 4)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 255 - (warningtimer - 3) * 255));
+                }
+                else if (warningtimer <= 3)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 128 + (warningtimer - 2.5) * 255));
+                }
+                else if (warningtimer <= 2.5)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 255 - (warningtimer - 2) * 255));
+                }
+                else if (warningtimer <= 2)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 128 + (warningtimer - 1.5) * 255));
+                }
+                else if (warningtimer <= 1.5)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 255 - (warningtimer - 1) * 255));
+                }
+                else if (warningtimer <= 1)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, warningtimer * 255));
+                }
+                boss.move(0.f, deltatime * 50.f);
+                window.draw(boss);
+                window.draw(warningSprite);
+            }
+            if (boss.getPosition().y >= 0 && gamephase == 9) { warning.stop(); bossmusic.play(); gamephase = 10; }
 
 
             //lesser update (stage 2)  50,72
@@ -865,6 +1049,11 @@ int main()
                 lesserX[i] = lesserX[i] + deltatime * 100.f * cos(lesserDeg[i]);
                 lesserY[i] = lesserY[i] + deltatime * 100.f * sin(lesserDeg[i]);
                 lesser.setPosition(lesserX[i], lesserY[i]);
+                if (lesser.getGlobalBounds().intersects(hitbox.getGlobalBounds()) && invincible <= 0)
+                {
+                    playerhealth--;
+                    invincible = 1;
+                }
                 lesserCooldown[i] = lesserCooldown[i] - deltatime;
                 if (lesserCooldown[i] <= 0)
                 {
@@ -872,7 +1061,7 @@ int main()
                     {
                         bbulletx[bosstotalbullet] = lesserX[i] + 25;
                         bbullety[bosstotalbullet] = lesserY[i] + 36;
-                        bdeg[bosstotalbullet] = (Pi * j)/5;
+                        bdeg[bosstotalbullet] = (Pi * j) / 5;
                         bvel[bosstotalbullet] = 0.1;
                         btype[bosstotalbullet] = 2;
                         bosstotalbullet++;
@@ -893,6 +1082,12 @@ int main()
                     ExplosionSize[Explosionnow] = 3;
                     lesserHealth[i]--;
                     Explosionnow++;
+                    float random = rand() % 2;
+                    if (random == 1) {
+                        powerupx[powerupnow] = lesserX[i]+44;
+                        powerupy[powerupnow] = lesserY[i];
+                        powerupnow++;
+                    }
                     lesserX[i] = NULL;
                     lesserY[i] = NULL;
                 }
@@ -915,6 +1110,7 @@ int main()
                     lesserDeg[lesserNow] = 0;
                     lesserCooldown[lesserNow] = 1;
                     lesserNow++;
+                    gamephase7lesserspawned++;
                     lesserHealth[lesserNow] = 5;
                     random = rand() % 300;
                     lesserX[lesserNow] = screensizex;
@@ -923,18 +1119,28 @@ int main()
                     lesserCooldown[lesserNow] = 1;
                     gamephase7timer = 0;
                     lesserNow++;
+                    gamephase7lesserspawned++;
                 }
 
-            gamephase7timer = gamephase7timer + deltatime;
+                gamephase7timer = gamephase7timer + deltatime;
             }
             if (lesserNow > 100)
                 lesserNow = 0;
-
+            if (gamephase7lesserspawned >= 20)
+            {
+                gamephase = 8;
+                gamephase7lesserspawned = 0;
+            }
             //boss
             if (gamephase == 3)
             {
                 window.draw(boss);
                 bosstotalbullet = bosstotalbullet % 1000;
+                if (boss.getGlobalBounds().intersects(PlayerSprite.getGlobalBounds()) && invincible <= 0)
+                {
+                    playerhealth--;
+                    invincible = 1;
+                }
                 if (bosscooldown1 <= 0 && bosshealth < 500) //pink
                 {
                     bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
@@ -1022,6 +1228,336 @@ int main()
                 }
                 else { bosscooldown2 = bosscooldown2 - deltatime; }
             }
+            //stage2 boss
+            if (gamephase == 10)
+            {
+                window.draw(boss);
+                bosstotalbullet = bosstotalbullet % 1000;
+                if (boss.getGlobalBounds().intersects(PlayerSprite.getGlobalBounds()) && invincible <= 0)
+                {
+                    playerhealth--;
+                    invincible = 1;
+                }
+                if (bosscooldown1 <= 0 && boss2skill1oneloopcooldown <= 0)
+                {
+                    if (boss2skill1degreedirection == 0)
+                    {
+                        boss2skill1degree += Pi / 150;
+                    }
+                    if (boss2skill1degreedirection == 1)
+                    {
+                        boss2skill1degree -= Pi / 150;
+                    }
+                    if (boss2skill1degree > Pi / 6)
+                    {
+                        boss2skill1degreedirection = 1;
+                    }
+                    if (boss2skill1degree < -Pi / 6)
+                    {
+                        boss2skill1degreedirection = 0;
+                    }
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = (Pi / 3) + boss2skill1degree;
+                    bvel[bosstotalbullet] = 0.25;
+                    btype[bosstotalbullet] = 9;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = (Pi / 2) + boss2skill1degree;
+                    bvel[bosstotalbullet] = 0.25;
+                    btype[bosstotalbullet] = 10;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = (2 * Pi / 3) + boss2skill1degree;
+                    bvel[bosstotalbullet] = 0.25;
+                    btype[bosstotalbullet] = 9;
+                    bosstotalbullet++;
+                    bosscooldown1 = 0.1;
+                    boss2skill1shotted++;
+                }
+                else { bosscooldown1 = bosscooldown1 - deltatime; }
+                if (boss2skill1shotted > 100)
+                {
+                    boss2skill1oneloopcooldown = 10;
+                    boss2skill1shotted = 0;
+                }
+                boss2skill1oneloopcooldown -= deltatime;
+
+
+                if (bosscooldown2 <= 0&&bosshealth<=1000)//10,163 148,163
+                {
+
+                    for (int i = 0; i <= 20; i++)
+                    {
+                        bbulletx[bosstotalbullet] = boss.getPosition().x + 10;
+                        bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                        bdeg[bosstotalbullet] = i * Pi / 10 + degree2;
+                        bvel[bosstotalbullet] = 0.1;
+                        btype[bosstotalbullet] = 2;
+                        bosstotalbullet++;
+                    }
+                    degree2 = degree2 + 0.1;
+                    for (int i = 0; i <= 20; i++)
+                    {
+                        bbulletx[bosstotalbullet] = boss.getPosition().x + 148;
+                        bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                        bdeg[bosstotalbullet] = i * Pi / 10 + degree2;
+                        bvel[bosstotalbullet] = 0.1;
+                        btype[bosstotalbullet] = 2;
+                        bosstotalbullet++;
+                    }
+                    degree2 = degree2 + 0.1;
+                    for (int i = 0; i <= 20; i++)
+                    {
+                        bbulletx[bosstotalbullet] = boss.getPosition().x + 10;
+                        bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                        bdeg[bosstotalbullet] = i * Pi / 10 + degree2;
+                        bvel[bosstotalbullet] = 0.085;
+                        btype[bosstotalbullet] = 3;
+                        bosstotalbullet++;
+                    }
+                    degree2 = degree2 + 0.1;
+                    for (int i = 0; i <= 20; i++)
+                    {
+                        bbulletx[bosstotalbullet] = boss.getPosition().x + 148;
+                        bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                        bdeg[bosstotalbullet] = i * Pi / 10 + degree2;
+                        bvel[bosstotalbullet] = 0.085;
+                        btype[bosstotalbullet] = 3;
+                        bosstotalbullet++;
+                    }
+
+                    degree2 = degree2 + 0.1;
+                    for (int i = 0; i <= 20; i++)
+                    {
+                        bbulletx[bosstotalbullet] = boss.getPosition().x + 10;
+                        bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                        bdeg[bosstotalbullet] = i * Pi / 10 + degree2;
+                        bvel[bosstotalbullet] = 0.07;
+                        btype[bosstotalbullet] = 4;
+                        bosstotalbullet++;
+                    }
+                    degree2 = degree2 + 0.1;
+                    for (int i = 0; i <= 20; i++)
+                    {
+                        bbulletx[bosstotalbullet] = boss.getPosition().x + 148;
+                        bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                        bdeg[bosstotalbullet] = i * Pi / 10 + degree2;
+                        bvel[bosstotalbullet] = 0.07;
+                        btype[bosstotalbullet] = 4;
+                        bosstotalbullet++;
+                    }
+
+                    degree2 = degree2 + 0.1;
+                    for (int i = 0; i <= 20; i++)
+                    {
+                        bbulletx[bosstotalbullet] = boss.getPosition().x + 10;
+                        bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                        bdeg[bosstotalbullet] = i * Pi / 10 + degree2;
+                        bvel[bosstotalbullet] = 0.055;
+                        btype[bosstotalbullet] = 5;
+                        bosstotalbullet++;
+                    }
+                    degree2 = degree2 + 0.1;
+                    for (int i = 0; i <= 20; i++)
+                    {
+                        bbulletx[bosstotalbullet] = boss.getPosition().x + 148;
+                        bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                        bdeg[bosstotalbullet] = i * Pi / 10 + degree2;
+                        bvel[bosstotalbullet] = 0.055;
+                        btype[bosstotalbullet] = 5;
+                        bosstotalbullet++;
+                    }
+
+                    degree2 = degree2 + 0.1;
+                    for (int i = 0; i <= 20; i++)
+                    {
+                        bbulletx[bosstotalbullet] = boss.getPosition().x + 10;
+                        bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                        bdeg[bosstotalbullet] = i * Pi / 10 + degree2;
+                        bvel[bosstotalbullet] = 0.04;
+                        btype[bosstotalbullet] = 6;
+                        bosstotalbullet++;
+                    }
+                    degree2 = degree2 + 0.1;
+                    for (int i = 0; i <= 20; i++)
+                    {
+                        bbulletx[bosstotalbullet] = boss.getPosition().x + 148;
+                        bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                        bdeg[bosstotalbullet] = i * Pi / 10 + degree2;
+                        bvel[bosstotalbullet] = 0.04;
+                        btype[bosstotalbullet] = 6;
+                        bosstotalbullet++;
+                    }
+                    degree2 = degree2 + 0.1;
+                    bosscooldown2 = 10;
+
+                }
+                else { bosscooldown2 = bosscooldown2 - deltatime; }
+                if (bosscooldown3 <= 0 && bosshealth <= 500)
+                {
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] =degree3;
+                    bvel[bosstotalbullet] = 0.1;
+                    btype[bosstotalbullet] = 7;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = -degree3;
+                    bvel[bosstotalbullet] = 0.1;
+                    btype[bosstotalbullet] = 7;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = Pi+degree3;
+                    bvel[bosstotalbullet] = 0.1;
+                    btype[bosstotalbullet] = 7;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = Pi-degree3;
+                    bvel[bosstotalbullet] = 0.1;
+                    btype[bosstotalbullet] = 7;
+                    bosstotalbullet++;
+                    degree3=degree3+0.2;
+                    bosscooldown3 = 0.1;
+                }
+                else { bosscooldown3 = bosscooldown3 - deltatime; }
+
+
+            }
+            if (bosshealth <= 0 && gamephase == 10) gamephase = 11;
+            if (gamephase == 11)
+            {
+                window.draw(boss);
+                if (bossdefeatexplosion > 0.1) {
+                    float random = rand() % 1400 / 10;
+                    explosionx[Explosionnow] = boss.getPosition().x + random - 40.f;
+                    random = rand() % 1620 / 10;
+                    explosiony[Explosionnow] = boss.getPosition().y + random - 40.f;
+                    ExplosionAnimation[Explosionnow] = 0;
+                    ExplosionSize[Explosionnow] = 3;
+                    Explosionnow++;
+                    bossdefeatexplosion = 0;
+                    bossdefeatexplosioncount++;
+                }
+                else bossdefeatexplosion = bossdefeatexplosion + deltatime;
+            }
+            if (bossdefeatexplosioncount >= 100 && gamephase == 11) { bossmusic.stop(); gamephase = 12; sumtime = 0; }
+            if (gamephase == 12) //stagescorecalculation
+            {
+                if (sumtime == 0)
+                {
+                    victory.play();
+                    timebonus = (400 - (int)stagetimer) * 5;
+                    healthbonus = playerhealth * 100;
+                    bossbonus = 1000;
+                    blankbonus = blank * 100;
+                    boss.setPosition(NULL, NULL);
+                    stageTime.setString(std::to_string(stagetimer));
+                    stageTimeBonus.setString(std::to_string(timebonus));
+                    HealthText.setString(std::to_string(playerhealth));
+                    HealthBonus.setString(std::to_string(healthbonus));
+                    BossKilled.setString("Destroyed");
+                    BossKilledBonus.setString(std::to_string(bossbonus));
+                    blankText.setString(std::to_string(blank));
+                    blankBonus.setString(std::to_string(blankbonus));
+                    score = score + timebonus + healthbonus + bossbonus + blankbonus;
+                    scoreText.setString(std::to_string(score));
+                    scoreText.setPosition(230, 450);
+                    scorebase.setPosition(150, 450);
+                }
+                if (sumtime > 0.5)
+                {
+                    window.draw(stageTimeBase);
+                    window.draw(stageTime);
+                }
+                if (sumtime > 1)
+                {
+                    window.draw(stageTimeBonusBase);
+                    window.draw(stageTimeBonus);
+                }
+                if (sumtime > 1.5)
+                {
+                    window.draw(HealthBase);
+                    window.draw(HealthText);
+                }
+                if (sumtime > 2)
+                {
+                    window.draw(HealthBonus);
+                    window.draw(HealthBonusBase);
+                }
+                if (sumtime > 2.5)
+                {
+                    window.draw(BossKilled);
+                    window.draw(BossKilledBase);
+                }
+                if (sumtime > 3)
+                {
+                    window.draw(BossKilledBonusBase);
+                    window.draw(BossKilledBonus);
+                }
+                if (sumtime > 3.5)
+                {
+                    window.draw(blankText);
+                    window.draw(blankTextBase);
+                }
+                if (sumtime > 4)
+                {
+                    window.draw(blankBonus);
+                    window.draw(blankBonusBase);
+                }
+                if (sumtime > 4.5)
+                {
+                    window.draw(scoreText);
+                    window.draw(scorebase);
+                }
+                if (sumtime > 10) // gameover
+                {
+                    boss.setPosition({ screensizex / 2 - 80.f,-200.f });
+                    bossdefeatexplosioncount = 0;
+                    stagetimer = 0;
+                    playerhealth = 5;
+                    blank = 3;
+                    phasetime = 0;
+                    sumtime = 0;
+                    bossmaxhealth = 1500;
+                    bosshealth = bossmaxhealth;
+                    scorebase.setCharacterSize(50);
+                    scoreText.setCharacterSize(50);
+                    for (int i = 0; i < 1050; i++)
+                    {
+                        bbulletx[i] = NULL;
+                        bbullety[i] = NULL;
+                        bulletx[i] = NULL;
+                        bullety[i] = NULL;
+                    }
+                    for (int i = 0; i < 110; i++)
+                    {
+                        explosionx[i] = NULL - 100;
+                        explosiony[i] = NULL - 100;
+
+                    }
+                    victory.stop();
+                    gamephase = 13;
+                }
+                sumtime = sumtime + deltatime;
+            }
+                
+            //gametimer
+            if (gamephase!=5&&gamephase!=12)
+                {
+                stagetimer = stagetimer + deltatime;
+                //score
+                scoreText.setString(std::to_string(score));
+                scoreText.setPosition(90, 10);
+                scorebase.setPosition(10, 10);
+                window.draw(scoreText);
+                window.draw(scorebase);
+                }
 
 
             //explosion update
@@ -1140,8 +1676,9 @@ int main()
 
 
             //boss health
-            if (gamephase == 3)
+            if (gamephase == 3||gamephase==10)
             {
+                bossHealthCap.setPosition(screensizex - 19, 398 - 2 * bossmaxhealth / 10);
                 window.draw(bossHealthCap);
                 window.draw(bossHealthBase);
                 for (int healthi = 1; healthi <= bossmaxhealth / 10; healthi++)
@@ -1157,7 +1694,6 @@ int main()
             }
 
             //move
-            window.display();
             if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Joystick::getAxisPosition(0, sf::Joystick::X) >= 50) && PlayerSprite.getPosition().x < screensizex - 40)
             {
                 PlayerSprite.setPosition(PlayerSprite.getPosition().x + PlayerVelocity * deltatime * 1000,
@@ -1200,18 +1736,36 @@ int main()
             }
             if ((sf::Keyboard::isKeyPressed(sf::Keyboard::J) || sf::Joystick::isButtonPressed(0, 2)) && blank > 0 && blankcooldown <= 0)
             {
-                for (int i = 0; i <= 5000; i++)
-                {
-                    bbulletx[i] = { NULL };
-                    bbullety[i] = { NULL };
-                }
                 blank--;
-                blankcooldown = 1000;
+                blankcooldown = 3;
+                blankCircle.setPosition(hitbox.getPosition());
             }
-            else { blankcooldown = blankcooldown - deltatime * 1000; }
+            else { blankcooldown = blankcooldown - deltatime; }
+
+            if (blankcooldown>2.7)
+            {
+                blankCircle.setRadius(blankCircle.getRadius() + deltatime * 3000);
+                blankCircle.move(-deltatime*3000,-deltatime*3000);
+                for (int i = 0; i < 5000; i++)
+                {
+                    BB.setPosition(bbulletx[i], bbullety[i]);
+                    if (blankCircle.getGlobalBounds().intersects(BB.getGlobalBounds()))
+                    {
+                        bbulletx[i] = NULL;
+                        bbullety[i] = NULL;
+                    }
+                }
+            }
+            else
+            {
+                blankCircle.setRadius(0);
+            }
+            window.draw(blankCircle);
 
             if (!((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Joystick::getAxisPosition(0, sf::Joystick::Y) <= -50) && PlayerSprite.getPosition().y > 0|| (sf::Keyboard::isKeyPressed(sf::Keyboard::S) || (sf::Joystick::getAxisPosition(0, sf::Joystick::Y) >= 50) && PlayerSprite.getPosition().y < screensizey - 37)))
                 PlayerSprite.setTextureRect(sf::IntRect(0, 0, 40, 37));
+
+
 
             //level test
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))
@@ -1227,7 +1781,7 @@ int main()
 
             //player bullet
 
-            if (cooldown <= 0 && gamephase != 2 && gamephase != 4 && gamephase != 5 && gamephase != 0&&gamephase!=6)
+            if (cooldown <= 0 && gamephase != 2 && gamephase != 4 && gamephase != 5 && gamephase != 0&&gamephase!=6&&gamephase!=9&&gamephase!=11&&gamephase!=12)
             {
                 totalbullet = totalbullet % 1000;
                 if (bulletlevel == 1)
@@ -1294,9 +1848,9 @@ int main()
             }
 
             //player hit with enemie
-            if (enemie.getGlobalBounds().intersects(hitbox.getGlobalBounds())) {
+            if (enemie.getGlobalBounds().intersects(hitbox.getGlobalBounds())&&invincible<=0) {
                 playerhealth--;
-                enemie.setPosition(rand() % (screensizex-100), -100);
+                invincible = 1;             
             }
 
             if (playerhealth <= 0)
@@ -1305,6 +1859,7 @@ int main()
                 bossmusic.stop();
                 menu = 2;
             }
+            window.display();
         }
     }
     return 0;
