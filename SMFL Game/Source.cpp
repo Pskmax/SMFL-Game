@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include<iostream>
 #include <SFML/Graphics.hpp>
 #include<SFML/Audio.hpp>
@@ -42,13 +43,20 @@ int main()
     float boss2skill1oneloopcooldown = 0;
     float invincible = 0;
     float invincibleblinktime = 0;
+    float enragetime = 0;
     int boss2skill1shotted = 0;
     bool boss2skill1degreedirection = 0; //0 for left 1 for right
     const double Pi = 3.14159265358979323846;
     unsigned int screensizex = 480, screensizey = 650;
-    int menu = 0; //0=menu 1=game 2=gameover 
+    int menu = 0; //0=menu 1=game 2=gameover 3=leaderboard 4=how to play
     bool gameoverscorecheck = 0;
     bool blankusing = 0;
+    bool cantype = 0;
+    bool canbackspace = 0;
+    char playername[15] = {NULL};
+    int playernamenow = 0;
+    float backspacetime = 0;
+    bool scoreboardupdate = 0;
     //collision test
     srand(time(NULL));
     float Random = rand() % 380;
@@ -144,14 +152,33 @@ int main()
     BB.setTexture(&BulletTexture);
     BB.setTextureRect(sf::IntRect(540, 34, 20, 20));
     BB.setPosition(0, 0);
-
+    //rocket bullet
+    sf::Sprite rocket;
+    rocket.setTexture(BulletTexture);
+    rocket.setTextureRect(sf::IntRect(755, 148, 11, 32));
+    float rocketX[1500] = { NULL };
+    float rocketY[1500] = { NULL };
+    float rocketRot[1500] = { NULL };
+    int rocketNow = 0;
+    //laser bullet
+    sf::Sprite laser;
+    laser.setTexture(BulletTexture);
+    laser.setTextureRect(sf::IntRect(642,17,9,14));
+    float laserX[1500] = { NULL };
+    float laserY[1500] = { NULL };
+    float laserRot[1500] = { NULL };
+    int laserNow = 0;
+    float laserdelay = 0;
+    int laserShot = 0;
     //powerup
     sf::Sprite powerup;
     sf::Texture poweruptexture;
     powerup.setTexture(poweruptexture);
     powerup.setTextureRect(sf::IntRect(1,1,13,13));//1,1//17,1//33,1//
-    float powerupVelocity = 300;
+    powerup.setScale(2.f,2.f);
+    float powerupVelocity = 200;
     int powerupanimation[200] = { 0 };
+    float powerupanimationtime = 0;
     float powerupx[200] = {NULL};
     float powerupy[200] = {NULL};
     int powerupnow = 0;
@@ -165,6 +192,12 @@ int main()
     blankCircle.setOutlineColor(sf::Color::White);
     blankCircle.setOutlineThickness(5);
     blankCircle.setFillColor(sf::Color(0, 0, 0, 0));
+    //boss enrage
+    sf::CircleShape bossEnrage;
+    bossEnrage.setRadius(0);
+    bossEnrage.setOutlineColor(sf::Color::Red);
+    bossEnrage.setOutlineThickness(5);
+    bossEnrage.setFillColor(sf::Color(255, 0, 0, 10));
     //warning
     sf::Sprite warningSprite;
     sf::Texture warningTexture;
@@ -324,10 +357,28 @@ int main()
     start.setPosition(190, 200);
     start.setFillColor(sf::Color::Cyan);
     start.setString("Start");
+    sf::Text howtoplay;
+    howtoplay.setCharacterSize(100);
+    howtoplay.setFont(pixelfont);
+    howtoplay.setPosition(130, 275);
+    howtoplay.setFillColor(sf::Color::Cyan);
+    howtoplay.setString("How To Play");
+    sf::Text menuleaderboard;
+    menuleaderboard.setCharacterSize(100);
+    menuleaderboard.setFont(pixelfont);
+    menuleaderboard.setPosition(120, 350);
+    menuleaderboard.setFillColor(sf::Color::Cyan);
+    menuleaderboard.setString("Leaderboard");
+    sf::Text exit;
+    exit.setCharacterSize(100);
+    exit.setFont(pixelfont);
+    exit.setPosition(200, 425);
+    exit.setFillColor(sf::Color::Cyan);
+    exit.setString("Exit");
     sf::RectangleShape testblock;
-    testblock.setSize(sf::Vector2f(200,30));
+    testblock.setSize(sf::Vector2f(90,30));
     testblock.setFillColor(sf::Color::Green);
-    testblock.setPosition(140,370);
+    testblock.setPosition(350,570);
     //gameover
     sf::Sprite gameoverpng;
     sf::Texture gameoverTexture;
@@ -344,7 +395,128 @@ int main()
     mainmenu.setFont(pixelfont);
     mainmenu.setPosition(140, 500);
     mainmenu.setFillColor(sf::Color::White);
-    mainmenu.setString("Main Menu");
+    mainmenu.setString("Submit Score");
+    //how to play
+    sf::Sprite howtoplaybg;
+    sf::Texture howtoplaybgTexture;
+    howtoplaybgTexture.loadFromFile("resources/howtoplaytest.png");
+    howtoplaybg.setTexture(howtoplaybgTexture);
+    sf::Text htpback;
+    htpback.setCharacterSize(100);
+    htpback.setFont(pixelfont);
+    htpback.setFillColor(sf::Color::Black);
+    htpback.setString("Back");
+    htpback.setPosition(350, 500);
+    //scoreboard
+    sf::Sprite scoreboardbg;
+    sf::Texture scoreboardTexture;
+    scoreboardTexture.loadFromFile("resources/scoreboard.jpg");
+    scoreboardbg.setTexture(scoreboardTexture);
+    sf::Text scoreboardText;
+    scoreboardText.setCharacterSize(150);
+    scoreboardText.setFont(pixelfont);
+    scoreboardText.setFillColor(sf::Color::White);
+    scoreboardText.setString("Leader Board");
+    scoreboardText.setPosition(50, -70);
+    sf::Text no1;
+    no1.setCharacterSize(100);
+    no1.setFont(pixelfont);
+    no1.setFillColor(sf::Color::White);
+    no1.setString("1.");
+    no1.setPosition(20,50);
+    sf::Text no2;
+    no2.setCharacterSize(100);
+    no2.setFont(pixelfont);
+    no2.setFillColor(sf::Color::White);
+    no2.setString("2.");
+    no2.setPosition(20, 125);
+    sf::Text no3;
+    no3.setCharacterSize(100);
+    no3.setFont(pixelfont);
+    no3.setFillColor(sf::Color::White);
+    no3.setString("3.");
+    no3.setPosition(20, 200);
+    sf::Text no4;
+    no4.setCharacterSize(100);
+    no4.setFont(pixelfont);
+    no4.setFillColor(sf::Color::White);
+    no4.setString("4.");
+    no4.setPosition(20, 275);
+    sf::Text no5;
+    no5.setCharacterSize(100);
+    no5.setFont(pixelfont);
+    no5.setFillColor(sf::Color::White);
+    no5.setString("5.");
+    no5.setPosition(20, 350);
+    sf::Text back;
+    back.setCharacterSize(100);
+    back.setFont(pixelfont);
+    back.setFillColor(sf::Color::Black);
+    back.setString("Back");
+    back.setPosition(180,500);
+    sf::Text player1;
+    player1.setCharacterSize(100);
+    player1.setFont(pixelfont);
+    player1.setFillColor(sf::Color::White);
+    player1.setString("Player");
+    player1.setPosition(50, 50);
+    sf::Text player2;
+    player2.setCharacterSize(100);
+    player2.setFont(pixelfont);
+    player2.setFillColor(sf::Color::White);
+    player2.setString("Player");
+    player2.setPosition(50, 125);
+    sf::Text player3;
+    player3.setCharacterSize(100);
+    player3.setFont(pixelfont);
+    player3.setFillColor(sf::Color::White);
+    player3.setString("Player");
+    player3.setPosition(50, 200);
+    sf::Text player4;
+    player4.setCharacterSize(100);
+    player4.setFont(pixelfont);
+    player4.setFillColor(sf::Color::White);
+    player4.setString("Player");
+    player4.setPosition(50, 275);
+    sf::Text player5;
+    player5.setCharacterSize(100);
+    player5.setFont(pixelfont);
+    player5.setFillColor(sf::Color::White);
+    player5.setString("Player");
+    player5.setPosition(50, 350);
+    sf::Text score1;
+    score1.setCharacterSize(100);
+    score1.setFont(pixelfont);
+    score1.setFillColor(sf::Color::White);
+    score1.setString("12345");
+    score1.setPosition(300, 50);
+    sf::Text score2;
+    score2.setCharacterSize(100);
+    score2.setFont(pixelfont);
+    score2.setFillColor(sf::Color::White);
+    score2.setString("12345");
+    score2.setPosition(300, 125);
+    sf::Text score3;
+    score3.setCharacterSize(100);
+    score3.setFont(pixelfont);
+    score3.setFillColor(sf::Color::White);
+    score3.setString("12345");
+    score3.setPosition(300, 200);
+    sf::Text score4;
+    score4.setCharacterSize(100);
+    score4.setFont(pixelfont);
+    score4.setFillColor(sf::Color::White);
+    score4.setString("12345");
+    score4.setPosition(300, 275);
+    sf::Text score5;
+    score5.setCharacterSize(100);
+    score5.setFont(pixelfont);
+    score5.setFillColor(sf::Color::White);
+    score5.setString("12345");
+    score5.setPosition(300, 350);
+
+
+    /*
     sf::Text highscoregameover;
     highscoregameover.setCharacterSize(100);
     highscoregameover.setFont(pixelfont);
@@ -356,6 +528,18 @@ int main()
     highscoregameovertext.setPosition(100, 350);
     highscoregameovertext.setFillColor(sf::Color::White);
     highscoregameovertext.setString("Highscore :");
+    */
+    sf::Text name;
+    name.setCharacterSize(100);
+    name.setFont(pixelfont);
+    name.setPosition(210,350);
+    name.setFillColor(sf::Color::White);
+    sf::Text nameText;
+    nameText.setCharacterSize(100);
+    nameText.setFont(pixelfont);
+    nameText.setPosition(100, 350);
+    nameText.setFillColor(sf::Color::White);
+    nameText.setString("Name:");
     //music
     sf::Music stage;
     if (!stage.openFromFile("resources/stage.ogg"))
@@ -485,46 +669,163 @@ int main()
             window.draw(menupng);
             window.draw(gamename);
             window.draw(start);
+            window.draw(howtoplay);
+            window.draw(menuleaderboard);
+            window.draw(exit);
             window.display();
             sf::Vector2i position = sf::Mouse::getPosition(window);
-            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)&&(position.x>=190&&position.x<=290)&&(position.y>=270&&position.y<=300))
+            //start
+            if ((position.x >= 190 && position.x <= 290) && (position.y >= 270 && position.y <= 300))
             {
-                bulletlevel = 1;
-                boss.setPosition({ screensizex / 2 - 80.f,-200.f });
-                bossdefeatexplosioncount = 0;
-                stagetimer = 0;
-                playerhealth = 5;
-                blank = 3;
-                phasetime = 0;
-                score = 0;
-                sumtime = 0;
-                gamephase = 0;
-                bosshealth = 1000;
-                scorebase.setCharacterSize(50);
-                scoreText.setCharacterSize(50);
-                for (int i = 0; i < 1050; i++)
+                start.setFillColor(sf::Color::Blue);
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
                 {
-                    bbulletx[i] = NULL;
-                    bbullety[i] = NULL;
-                    bulletx[i] = NULL;
-                    bullety[i] = NULL;
-                }
-                for (int i = 0; i < 110; i++)
-                {
-                    explosionx[i] = NULL - 100;
-                    explosiony[i] = NULL - 100;
+                    bulletlevel = 1;
+                    boss.setPosition({ screensizex / 2 - 80.f,-200.f });
+                    bossdefeatexplosioncount = 0;
+                    stagetimer = 0;
+                    playerhealth = 5;
+                    blank = 3;
+                    phasetime = 0;
+                    score = 0;
+                    sumtime = 0;
+                    gamephase = 0;
+                    bossmaxhealth = 1000;
+                    bosshealth = 1000;
+                    scorebase.setCharacterSize(50);
+                    scoreText.setCharacterSize(50);
+                    for (int i = 0; i < 1050; i++)
+                    {
+                        bbulletx[i] = NULL;
+                        bbullety[i] = NULL;
+                        bulletx[i] = NULL;
+                        bullety[i] = NULL;
+                    }
+                    for (int i = 0; i < 110; i++)
+                    {
+                        explosionx[i] = NULL - 100;
+                        explosiony[i] = NULL - 100;
 
+                    }
+                    for (int i = 0; i < 1500; i++)
+                    {
+                        laserX[i] = NULL;
+                        laserY[i] = NULL;
+                    }
+                    for (int i = 0; i < 1500; i++)
+                    {
+                        rocketX[i] = NULL;
+                        rocketY[i] = NULL;
+                    }
+                    bossEnrage.setPosition(NULL, NULL);
+                    bossEnrage.setRadius(0);
+                    PlayerSprite.setPosition(spawnPoint);
+                    hitbox.setPosition(hbspawnPoint);
+                    menu = 1;
                 }
-                PlayerSprite.setPosition(spawnPoint);
-                hitbox.setPosition(hbspawnPoint);
-                menu = 1;
             }
+            else start.setFillColor(sf::Color::Cyan);
+            //leaderboard
+            if ((position.x >= 120 && position.x <= 350) && (position.y >= 420 && position.y <= 450))
+            {
+                menuleaderboard.setFillColor(sf::Color::Blue);
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                    menu = 3;
+            }
+            else menuleaderboard.setFillColor(sf::Color::Cyan);
+            //exit
+            if ((position.x >= 200 && position.x <= 280) && (position.y >= 495 && position.y <= 525))
+            {
+                exit.setFillColor(sf::Color::Blue);
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                    window.close();
+            }
+            else exit.setFillColor(sf::Color::Cyan);
+            //how to play
+            if ((position.x >= 130 && position.x <= 350) && (position.y >= 345 && position.y <= 380))
+            {
+                howtoplay.setFillColor(sf::Color::Blue);
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                    menu = 4;
+            }
+            else howtoplay.setFillColor(sf::Color::Cyan);
+        }
+        if (menu == 4) 
+        {
+            sf::Vector2i position = sf::Mouse::getPosition(window);
+            window.draw(howtoplaybg);
+            window.draw(htpback);
+            window.display();
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && (position.x >= 350 && position.x <= 440) && (position.y >= 570 && position.y <= 600))
+            {
+                menu = 0;
+            }
+        }
+        if (menu == 3)
+        {
+            //update
+            if (scoreboardupdate == 0)
+            {
+                char temp[256];
+                FILE* fp;
+                string leaderboardname[5];
+                int leaderboardscore[5];
+                fp = fopen("./Highscore.txt", "r");
+                for (int i = 0; i < 5; i++)
+                {
+                    fscanf(fp, "%s", &temp);
+                    leaderboardname[i] = temp;
+                    fscanf(fp, "%d", &leaderboardscore[i]);
+                }
+                player1.setString(leaderboardname[0]);
+                player2.setString(leaderboardname[1]);
+                player3.setString(leaderboardname[2]);
+                player4.setString(leaderboardname[3]);
+                player5.setString(leaderboardname[4]);
+                score1.setString(to_string(leaderboardscore[0]));
+                score2.setString(to_string(leaderboardscore[1]));
+                score3.setString(to_string(leaderboardscore[2]));
+                score4.setString(to_string(leaderboardscore[3]));
+                score5.setString(to_string(leaderboardscore[4]));
+                scoreboardupdate = 1;
+            }
+            window.draw(scoreboardbg);
+            window.draw(scoreboardText);
+            window.draw(no1);
+            window.draw(no2);
+            window.draw(no3);
+            window.draw(no4);
+            window.draw(no5);
+            window.draw(back);
+            window.draw(player1);
+            window.draw(player2);
+            window.draw(player3);
+            window.draw(player4);
+            window.draw(player5);
+            window.draw(score1);
+            window.draw(score2);
+            window.draw(score3);
+            window.draw(score4);
+            window.draw(score5);
+            window.display();
+            //back
+            sf::Vector2i position = sf::Mouse::getPosition(window);
+            if ((position.x >= 180 && position.x <= 280) && (position.y >= 570 && position.y <= 600))
+            {
+                back.setFillColor(sf::Color::Black);
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                    menu = 0;
+
+            }
+            else back.setFillColor(sf::Color(100, 100, 100));
         }
         if (menu == 2) {
             window.draw(gameoverpng);
             window.draw(gameovertext);
+            /*
             window.draw(highscoregameover);
             window.draw(highscoregameovertext);
+            */
             window.draw(mainmenu);
             scoreText.setString(std::to_string(score));
             scoreText.setPosition(270, 300);
@@ -533,34 +834,82 @@ int main()
             scoreText.setCharacterSize(100);
             window.draw(scorebase);
             window.draw(scoreText);
+            window.draw(nameText);
+            window.draw(name);
             window.display();
-            if (gameoverscorecheck == 0) {
-                string highscorein;
-                ifstream in("Highscore.txt");
-                getline(in, highscorein);
-                in.close();
-                stringstream highscoreinbuttext(highscorein);
-                int highscoreinbuttextbutint = 0;
-                highscoreinbuttext >> highscoreinbuttextbutint;
-                ofstream out("Highscore.txt");
-                if (highscoreinbuttextbutint < score)
+            //name input
+            if (event.type != sf::Event::TextEntered) cantype = 1;
+            if (event.type == sf::Event::TextEntered && cantype == 1)
+            {
+                if (event.text.unicode < 128)
                 {
-                    out << score;
-                    highscoregameover.setString(std::to_string(score));
+                    if (!sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace)&&playernamenow<14) {
+                        playername[playernamenow] = static_cast<char>(event.text.unicode);
+                        playernamenow++;
+                    }
                 }
-                else
-                {
-                    out << highscoreinbuttextbutint;
-                    highscoregameover.setString(std::to_string(highscoreinbuttextbutint));
-                }
-                out.close();
-                gameoverscorecheck = 1;
+                cantype = 0;
             }
+            if (!sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace)) canbackspace = 1;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace) && canbackspace == 1)
+            {
+                if (playernamenow > 0) {
+                    playernamenow--;
+                    playername[playernamenow] = '\0';
+                    canbackspace = 0;
+                }
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace))
+            {
+                backspacetime += deltatime;
+            }
+            else backspacetime = 0;
+            if (backspacetime > 0.5)
+            {
+                for (int i = 0; i < 15; i++)
+                {
+                    playername[i] = '\0';
+                }
+                playernamenow = 0;
+            }
+            name.setString(playername);
+            printf("%s %d\n", playername,playernamenow);
             sf::Vector2i position = sf::Mouse::getPosition(window);
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && (position.x >= 140 && position.x <= 340) && (position.y >= 570 && position.y <= 600))
             {
-                gameoverscorecheck = 0;
+                char temp[256];
+                FILE* fp;
+                string leaderboardname[6];
+                int leaderboardscore[6];
+                vector <pair<int, string>> sorting;
+                fp = fopen("./Highscore.txt", "r");
+                for (int i = 0; i < 5; i++)
+                {
+                    fscanf(fp, "%s", &temp);
+                    leaderboardname[i] = temp;
+                    fscanf(fp, "%d", &leaderboardscore[i]);
+                    sorting.push_back(make_pair(leaderboardscore[i], leaderboardname[i]));
+                }
+                leaderboardname[5] = playername;
+                leaderboardscore[5] = score;
+                sorting.push_back(make_pair(leaderboardscore[5], leaderboardname[5]));
+                sort(sorting.begin(), sorting.end());
+                for (int i = 0; i < 6; i++)
+                {
+                    cout << sorting[i].second << " " << sorting[i].first << endl;
+                }
+                fclose(fp);
+                fp = fopen("./Highscore.txt", "w");
+                for (int i = 5; i > 0; i--)
+                {
+                    strcpy(temp, sorting[i].second.c_str());
+                    fprintf(fp, "%s %d\n", temp, sorting[i].first);
+                }
+                fclose(fp);
                 menu = 0;
+                scoreboardupdate = 0;
+                for (int i=0;i<15;i++)
+                playername[i] = {NULL};
             }
         }
         if (menu == 1) {
@@ -607,6 +956,19 @@ int main()
             {
                 powerupnow = 0;
             }
+            if (powerupanimationtime > 0.2)
+            {
+                for (int i = 0; i < 150; i++)
+                {
+                    if (powerupanimation[i] == 3)
+                    {
+                        powerupanimation[i] = 1;
+                    }
+                    else powerupanimation[i]++;
+                }
+                powerupanimationtime = 0;
+            }
+            else powerupanimationtime = powerupanimationtime + deltatime;
             for (int i = 0; i < 150; i++)
             {
                 if (powerupy[i] > screensizey)
@@ -627,6 +989,12 @@ int main()
                     if (bulletlevel < 4)
                        bulletlevel++; 
                     else score = score + 100;
+                }
+                switch (powerupanimation[i])//1,1//17,1//33,1//
+                {
+                case 1:powerup.setTextureRect(sf::IntRect(1, 1, 13, 13)); break;
+                case 2:powerup.setTextureRect(sf::IntRect(17, 1, 13, 13)); break;
+                case 3:powerup.setTextureRect(sf::IntRect(33, 1, 13, 13)); break;
                 }
                 window.draw(powerup);
             }
@@ -668,8 +1036,9 @@ int main()
                     ExplosionSize[Explosionnow] = 3;
                     float random = rand() % 2;
                         if (random == 1) {
-                            powerupx[powerupnow] = enemie.getPosition().x + 44;
+                            powerupx[powerupnow] = enemie.getPosition().x + 31;
                             powerupy[powerupnow] = enemie.getPosition().y;
+                            powerupanimation[powerupnow] = 1;
                             powerupnow++;
                         }
                     random = rand() % 380;
@@ -680,10 +1049,14 @@ int main()
                     score++;
                     Explosionnow++;
                 }
+                if (bulletx[i] == NULL && bullety[i] == NULL)
+                {
+                    continue;
+                }
                 //lesser (stage 2) hit by bullet
                 for (int j = 0; j < 150; j++)
                 {
-                    if (lesserX[j] == NULL && lesserY[j] == NULL) continue;
+                    if ((lesserX[j] == NULL && lesserY[j] == NULL)||lesserHealth[j]<=0) continue;
                     lesser.setPosition(lesserX[j], lesserY[j]);
                     if (lesser.getGlobalBounds().intersects(BulletSprite.getGlobalBounds()))
                     {
@@ -700,7 +1073,7 @@ int main()
                         Explosionnow++;
                     }
                 }
-                if (boss.getGlobalBounds().intersects(BulletSprite.getGlobalBounds()) && (gamephase == 3 || gamephase == 10)) {
+                if (boss.getGlobalBounds().intersects(BulletSprite.getGlobalBounds()) && (gamephase == 3 || gamephase == 10||gamephase==15||gamephase==19)) {
 
                     //medium explosion
 
@@ -820,8 +1193,86 @@ int main()
                 }
 
             }
-
-
+            //rocket update
+            if (rocketNow > 1000)rocketNow = 0;
+            for (int i = 0; i < 1500; i++)
+            {
+                if (rocketX[i] == NULL && rocketY[i] == NULL)
+                {
+                    continue;
+                }
+                if (rocketRot[i] == 0)
+                    rocketY[i] = rocketY[i] - deltatime * 500;
+                if (rocketRot[i] == 180)
+                    rocketY[i] = rocketY[i] + deltatime * 500;
+                rocket.setPosition(rocketX[i],rocketY[i]);
+                rocket.setRotation(rocketRot[i]);
+                window.draw(rocket);
+                //player hit rocket
+                if (hitbox.getGlobalBounds().intersects(rocket.getGlobalBounds()) && invincible < 0) {
+                    std::cout << "Hit" << endl;
+                    playerhealth--;
+                    rocket.setPosition(NULL, NULL);
+                    rocketX[i] = NULL;
+                    rocketY[i] = NULL;
+                    invincible = 1;
+                }
+                //out of bound
+                if (rocketY[i] < -32)
+                {
+                    rocketRot[i] = 180;
+                    float random = rand() % screensizex;
+                    rocketX[i] =random;
+                }
+                if (rocketY[i] > screensizey)
+                {
+                    rocketX[i] = NULL;
+                    rocketY[i] = NULL;
+                }
+            }
+            //laser update
+            if (laserNow > 1000)laserNow = 0;
+            for (int i = 0; i < 1500; i++)
+            {
+                if (laserX[i] == NULL && laserY[i] == NULL)
+                {
+                    continue;
+                }
+                if (laserRot[i] == 0)
+                    laserY[i] = laserY[i] - deltatime * 300;
+                if (laserRot[i] == 180)
+                    laserY[i] = laserY[i] + deltatime * 300;
+                if (laserRot[i] == 90)
+                    laserX[i] = laserX[i] + deltatime * 300;
+                laser.setPosition(laserX[i], laserY[i]);
+                laser.setRotation(laserRot[i]);
+                window.draw(laser);
+                //player hit rocket
+                if (hitbox.getGlobalBounds().intersects(laser.getGlobalBounds()) && invincible < 0) {
+                    std::cout << "Hit" << endl;
+                    playerhealth--;
+                    laser.setPosition(NULL, NULL);
+                    laserX[i] = NULL;
+                    laserY[i] = NULL;
+                    invincible = 1;
+                }
+                //out of bound
+                if (laserY[i] < -32)
+                {
+                    laserX[i] = NULL;
+                    laserY[i] = NULL;
+                }
+                if (laserY[i] > screensizey)
+                {
+                    laserX[i] = NULL;
+                    laserY[i] = NULL;
+                }
+                if (laserX[i] > screensizex)
+                {
+                    laserX[i] = NULL;
+                    laserY[i] = NULL;
+                }
+            }
             //collision
             if (gamephase == 1) {
                 window.draw(enemie);
@@ -999,12 +1450,12 @@ int main()
                 window.draw(StageText);
                 window.draw(Stage);
             }
-            if (gamephase == 6 && phasetime >= 3) { gamephase = 7; }
+            if (gamephase == 6 && phasetime >= 3) { gamephase = 7; gamephase7lesserspawned = 0; }
             if (gamephase == 8)
             {
                 gamephase8timer = gamephase8timer + deltatime;
             }
-            if (gamephase8timer >= 5 && gamephase == 8) { stage.stop(); gamephase = 9; warning.play(); warningtimer = 0; }
+            if (gamephase8timer >= 5 && gamephase == 8) { gamephase8timer = 0; stage.stop(); gamephase = 9; warning.play(); warningtimer = 0; }
             if (gamephase == 9)
             {
                 warningtimer = warningtimer + deltatime;
@@ -1084,8 +1535,9 @@ int main()
                     Explosionnow++;
                     float random = rand() % 2;
                     if (random == 1) {
-                        powerupx[powerupnow] = lesserX[i]+44;
+                        powerupx[powerupnow] = lesserX[i]+31;
                         powerupy[powerupnow] = lesserY[i];
+                        powerupanimation[powerupnow] = 1;
                         powerupnow++;
                     }
                     lesserX[i] = NULL;
@@ -1126,7 +1578,7 @@ int main()
             }
             if (lesserNow > 100)
                 lesserNow = 0;
-            if (gamephase7lesserspawned >= 20)
+            if (gamephase7lesserspawned >= 20&&gamephase==7)
             {
                 gamephase = 8;
                 gamephase7lesserspawned = 0;
@@ -1543,12 +1995,546 @@ int main()
                     }
                     victory.stop();
                     gamephase = 13;
+                    phasetime = 0;
                 }
                 sumtime = sumtime + deltatime;
             }
-                
+            if (gamephase == 13) {
+                Stage.setString(std::to_string(3));
+                window.draw(StageText);
+                window.draw(Stage);
+            }
+            if (gamephase == 13 && phasetime >= 3) { gamephase = 14; warning.play(); warningtimer = 0; }
+            else phasetime = phasetime + deltatime;
+            if (gamephase == 14)
+            {
+                warningtimer = warningtimer + deltatime;
+                if (warningtimer <= 4)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 255 - (warningtimer - 3) * 255));
+                }
+                else if (warningtimer <= 3)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 128 + (warningtimer - 2.5) * 255));
+                }
+                else if (warningtimer <= 2.5)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 255 - (warningtimer - 2) * 255));
+                }
+                else if (warningtimer <= 2)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 128 + (warningtimer - 1.5) * 255));
+                }
+                else if (warningtimer <= 1.5)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 255 - (warningtimer - 1) * 255));
+                }
+                else if (warningtimer <= 1)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, warningtimer * 255));
+                }
+                boss.move(0.f, deltatime * 50.f);
+                window.draw(boss);
+                window.draw(warningSprite);
+            }
+            if (boss.getPosition().y >= 0 && gamephase == 14) { warning.stop(); bossmusic.play(); gamephase = 15; }
+            if (gamephase == 15)
+            {
+                window.draw(boss);
+                bosstotalbullet = bosstotalbullet % 1000;
+                if (boss.getGlobalBounds().intersects(PlayerSprite.getGlobalBounds()) && invincible <= 0)
+                {
+                    playerhealth--;
+                    invincible = 1;
+                }
+                if (bosscooldown1 <= 0)
+                {
+                    rocketX[rocketNow] = boss.getPosition().x+6;
+                    rocketY[rocketNow] = boss.getPosition().y+18;
+                    rocketRot[rocketNow] = 0;
+                    rocketNow++;                    
+                    rocketX[rocketNow] = boss.getPosition().x + 144;
+                    rocketY[rocketNow] = boss.getPosition().y + 18;
+                    rocketRot[rocketNow] = 0;
+                    rocketNow++;
+                    bosscooldown1 = 0.4;
+                }
+                else { bosscooldown1 = bosscooldown1 - deltatime; }
+                if (bosscooldown2 <= 0 && bosshealth <= 1000)
+                {
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 10;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                    bdeg[bosstotalbullet] = -degree2;
+                    bvel[bosstotalbullet] = 0.1;
+                    btype[bosstotalbullet] = 7;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 10;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                    bdeg[bosstotalbullet] = -degree2 + Pi/2;
+                    bvel[bosstotalbullet] = 0.1;
+                    btype[bosstotalbullet] = 7;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 10;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                    bdeg[bosstotalbullet] = -degree2 + Pi;
+                    bvel[bosstotalbullet] = 0.1;
+                    btype[bosstotalbullet] = 7;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 10;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                    bdeg[bosstotalbullet] = -degree2 + 3*Pi / 2;
+                    bvel[bosstotalbullet] = 0.1;
+                    btype[bosstotalbullet] = 7;
+                    bosstotalbullet++;
+                    degree2 += 0.1;
+
+
+
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 148;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                    bdeg[bosstotalbullet] = degree2;
+                    bvel[bosstotalbullet] = 0.1;
+                    btype[bosstotalbullet] = 8;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 148;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                    bdeg[bosstotalbullet] = degree2+Pi/2;
+                    bvel[bosstotalbullet] = 0.1;
+                    btype[bosstotalbullet] = 8;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 148;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                    bdeg[bosstotalbullet] = degree2+Pi;
+                    bvel[bosstotalbullet] = 0.1;
+                    btype[bosstotalbullet] = 8;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 148;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 163;
+                    bdeg[bosstotalbullet] = degree2+3*Pi/2;
+                    bvel[bosstotalbullet] = 0.1;
+                    btype[bosstotalbullet] = 8;
+                    bosstotalbullet++;
+                    degree2 += 0.1;
+                    bosscooldown2 = 0.2;
+                }
+                else { bosscooldown2 = bosscooldown2 - deltatime; }
+                if (bosscooldown3 <= 0 && bosshealth <= 500)
+                {
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = degree3;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 12;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = Pi/3+degree3;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 12;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = 2*Pi/3+degree3;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 12;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = Pi+degree3;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 12;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = 4*Pi/3+degree3;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 12;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = 5*Pi/3+degree3;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 12;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = -degree3;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 12;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = Pi / 3 - degree3;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 12;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = 2 * Pi / 3 - degree3;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 12;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = Pi - degree3;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 12;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = 4 * Pi / 3 - degree3;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 12;
+                    bosstotalbullet++;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = 5 * Pi / 3 - degree3;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 12;
+                    bosstotalbullet++;
+                    degree3 = degree3 + 0.1;
+                    bosscooldown3 = 0.1;
+                }
+                else { bosscooldown3 = bosscooldown3 - deltatime; }
+
+
+            }
+            if (gamephase == 15 && bosshealth <= 0) { gamephase = 16; bossEnrage.setPosition(boss.getPosition().x+boss.getSize().x/2,boss.getPosition().y+boss.getSize().y/2); bossmusic.stop(); }
+            if (gamephase == 16)
+            {
+                    window.draw(boss);
+                    bossEnrage.setRadius(bossEnrage.getRadius() + deltatime * 3000);
+                    bossEnrage.move(-deltatime * 3000, -deltatime * 3000);
+                    for (int i = 0; i < 5000; i++)
+                    {
+                        BB.setPosition(bbulletx[i], bbullety[i]);
+                        if (bossEnrage.getGlobalBounds().intersects(BB.getGlobalBounds()))
+                        {
+                            bbulletx[i] = NULL;
+                            bbullety[i] = NULL;
+                        }
+                    }
+                    for (int i = 0; i < 1500; i++)
+                    {
+                        rocket.setPosition(rocketX[i], rocketY[i]);
+                        if (bossEnrage.getGlobalBounds().intersects(rocket.getGlobalBounds()))
+                        {
+                            rocketX[i] = NULL;
+                            rocketY[i] = NULL;
+                        }
+                    }
+                    for (int i = 0; i < 1500; i++)
+                    {
+                        BulletSprite.setPosition(rocketX[i], rocketY[i]);
+                        if (bossEnrage.getGlobalBounds().intersects(BulletSprite.getGlobalBounds()))
+                        {
+                            bulletx[i] = NULL;
+                            bullety[i] = NULL;
+                        }
+                    }
+                    enragetime = enragetime + deltatime;
+            }
+            if (enragetime >= 0.3 && gamephase == 16) { gamephase = 17; bulletlevel = 1; }
+            if (gamephase==17)
+            {
+                window.draw(boss);
+                bosshealth++;
+            }
+            if (gamephase == 17 && bosshealth >= 1500) { gamephase = 18; warning.play(); warningtimer = 0; }
+            if (gamephase == 18)
+            {
+                warningtimer = warningtimer + deltatime;
+                if (warningtimer <= 4)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 255 - (warningtimer - 3) * 255));
+                }
+                else if (warningtimer <= 3)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 128 + (warningtimer - 2.5) * 255));
+                }
+                else if (warningtimer <= 2.5)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 255 - (warningtimer - 2) * 255));
+                }
+                else if (warningtimer <= 2)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 128 + (warningtimer - 1.5) * 255));
+                }
+                else if (warningtimer <= 1.5)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, 255 - (warningtimer - 1) * 255));
+                }
+                else if (warningtimer <= 1)
+                {
+                    warningSprite.setColor(sf::Color(255, 255, 255, warningtimer * 255));
+                }
+                window.draw(warningSprite);
+                window.draw(boss);
+            } 
+            if (warningtimer > 4 && gamephase == 18) {bossmusic.play(); gamephase = 19;}
+            if (gamephase == 19)
+            {
+                window.draw(boss);
+                bosstotalbullet = bosstotalbullet % 1000;
+                if (boss.getGlobalBounds().intersects(PlayerSprite.getGlobalBounds()) && invincible <= 0)
+                {
+                    playerhealth--;
+                    invincible = 1;
+                }
+                if (bosscooldown3 <= 0)
+                {
+                    rocketX[rocketNow] = boss.getPosition().x + 6;
+                    rocketY[rocketNow] = boss.getPosition().y + 18;
+                    rocketRot[rocketNow] = 0;
+                    rocketNow++;
+                    rocketX[rocketNow] = boss.getPosition().x + 144;
+                    rocketY[rocketNow] = boss.getPosition().y + 18;
+                    rocketRot[rocketNow] = 0;
+                    rocketNow++;
+                    bosscooldown3 = 0.4;
+                }
+                else { bosscooldown3 = bosscooldown3 - deltatime; }
+                if (laserShot > 200)
+                {
+                    laserShot = 0;
+                    laserdelay = 5;
+                }
+                if (laserdelay <= 0)
+                    if (bosscooldown1 <= 0)
+                    {
+                        for (int i = 0; i < screensizey; i += screensizey / 5)
+                        {
+                            laserX[laserNow] = 0;
+                            laserY[laserNow] = i;
+                            laserRot[laserNow] = 90;
+                            laserNow++;
+                            laserShot++;
+                        }
+                        for (int i = 0; i < screensizex; i += screensizex / 5)
+                        {
+                            laserX[laserNow] = i;
+                            laserY[laserNow] = 0;
+                            laserRot[laserNow] = 180;
+                            laserNow++;
+                            laserShot++;
+                        }
+                        bosscooldown1 = 0.1;
+                    }
+                    else bosscooldown1 = bosscooldown1 - deltatime;
+                else laserdelay=laserdelay-deltatime;
+                if (bosscooldown2 <= 0)
+                {
+                    float random = rand() % 13;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = degree2;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 1+random;
+                    bosstotalbullet++;
+                    random = rand() % 13;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = Pi / 3 + degree2;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 1+random;
+                    bosstotalbullet++;
+                    random = rand() % 13;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = 2 * Pi / 3 + degree2;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 1+random;
+                    bosstotalbullet++;
+                    random = rand() % 13;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = Pi + degree2;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 1+random;
+                    bosstotalbullet++;
+                    random = rand() % 13;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = 4 * Pi / 3 + degree2;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 1+random;
+                    bosstotalbullet++;
+                    random = rand() % 13;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = 5 * Pi / 3 + degree2;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 1+random;
+                    bosstotalbullet++;
+                    random = rand() % 13;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = -degree2;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 1+random;
+                    bosstotalbullet++;
+                    random = rand() % 13;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = Pi / 3 - degree2;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 1+random;
+                    bosstotalbullet++;
+                    random = rand() % 13;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = 2 * Pi / 3 - degree2;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 1+random;
+                    bosstotalbullet++;
+                    random = rand() % 13;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = Pi - degree2;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 1+random;
+                    bosstotalbullet++;
+                    random = rand() % 13;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = 4 * Pi / 3 - degree2;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 1+random;
+                    bosstotalbullet++;
+                    random = rand() % 13;
+                    bbulletx[bosstotalbullet] = boss.getPosition().x + 70;
+                    bbullety[bosstotalbullet] = boss.getPosition().y + 160;
+                    bdeg[bosstotalbullet] = 5 * Pi / 3 - degree2;
+                    bvel[bosstotalbullet] = 0.15;
+                    btype[bosstotalbullet] = 1+random;
+                    bosstotalbullet++;
+                    degree2 = degree2 + 0.1;
+                    bosscooldown2 = 0.2;
+                }
+                else { bosscooldown2 = bosscooldown2 - deltatime; }
+            }
+            if (gamephase == 19 && bosshealth <= 0) { gamephase = 20; bossEnrage.setPosition(NULL, NULL); bossEnrage.setRadius(0); }
+                if (gamephase == 20)
+                {
+                    window.draw(boss);
+                    if (bossdefeatexplosion > 0.1) {
+                        float random = rand() % 1400 / 10;
+                        explosionx[Explosionnow] = boss.getPosition().x + random - 40.f;
+                        random = rand() % 1620 / 10;
+                        explosiony[Explosionnow] = boss.getPosition().y + random - 40.f;
+                        ExplosionAnimation[Explosionnow] = 0;
+                        ExplosionSize[Explosionnow] = 3;
+                        Explosionnow++;
+                        bossdefeatexplosion = 0;
+                        bossdefeatexplosioncount++;
+                    }
+                    else bossdefeatexplosion = bossdefeatexplosion + deltatime;
+                }
+            if (bossdefeatexplosioncount >= 100 && gamephase == 20) { bossmusic.stop(); gamephase = 21; sumtime = 0; }
+            if (gamephase == 21) //stagescorecalculation
+            {
+                if (sumtime == 0)
+                {
+                    victory.play();
+                    timebonus = (1000 - (int)stagetimer) * 5;
+                    healthbonus = playerhealth * 100;
+                    bossbonus = 5000;
+                    blankbonus = blank * 100;
+                    boss.setPosition(NULL, NULL);
+                    stageTime.setString(std::to_string(stagetimer));
+                    stageTimeBonus.setString(std::to_string(timebonus));
+                    HealthText.setString(std::to_string(playerhealth));
+                    HealthBonus.setString(std::to_string(healthbonus));
+                    BossKilled.setString("Destroyed");
+                    BossKilledBonus.setString(std::to_string(bossbonus));
+                    blankText.setString(std::to_string(blank));
+                    blankBonus.setString(std::to_string(blankbonus));
+                    score = score + timebonus + healthbonus + bossbonus + blankbonus;
+                    scoreText.setString(std::to_string(score));
+                    scoreText.setPosition(230, 450);
+                    scorebase.setPosition(150, 450);
+                }
+                if (sumtime > 0.5)
+                {
+                    window.draw(stageTimeBase);
+                    window.draw(stageTime);
+                }
+                if (sumtime > 1)
+                {
+                    window.draw(stageTimeBonusBase);
+                    window.draw(stageTimeBonus);
+                }
+                if (sumtime > 1.5)
+                {
+                    window.draw(HealthBase);
+                    window.draw(HealthText);
+                }
+                if (sumtime > 2)
+                {
+                    window.draw(HealthBonus);
+                    window.draw(HealthBonusBase);
+                }
+                if (sumtime > 2.5)
+                {
+                    window.draw(BossKilled);
+                    window.draw(BossKilledBase);
+                }
+                if (sumtime > 3)
+                {
+                    window.draw(BossKilledBonusBase);
+                    window.draw(BossKilledBonus);
+                }
+                if (sumtime > 3.5)
+                {
+                    window.draw(blankText);
+                    window.draw(blankTextBase);
+                }
+                if (sumtime > 4)
+                {
+                    window.draw(blankBonus);
+                    window.draw(blankBonusBase);
+                }
+                if (sumtime > 4.5)
+                {
+                    window.draw(scoreText);
+                    window.draw(scorebase);
+                }
+                if (sumtime > 10) // gameover
+                {
+                    boss.setPosition({ screensizex / 2 - 80.f,-200.f });
+                    bossdefeatexplosioncount = 0;
+                    stagetimer = 0;
+                    playerhealth = 5;
+                    blank = 3;
+                    phasetime = 0;
+                    sumtime = 0;
+                    bossmaxhealth = 1500;
+                    bosshealth = bossmaxhealth;
+                    scorebase.setCharacterSize(50);
+                    scoreText.setCharacterSize(50);
+                    for (int i = 0; i < 1050; i++)
+                    {
+                        bbulletx[i] = NULL;
+                        bbullety[i] = NULL;
+                        bulletx[i] = NULL;
+                        bullety[i] = NULL;
+                    }
+                    for (int i = 0; i < 110; i++)
+                    {
+                        explosionx[i] = NULL - 100;
+                        explosiony[i] = NULL - 100;
+
+                    }
+                    victory.stop();
+                    menu = 2;
+                    phasetime = 0;
+                }
+                sumtime = sumtime + deltatime;
+            }
+            window.draw(bossEnrage);
+            printf("%d\n", gamephase);
             //gametimer
-            if (gamephase!=5&&gamephase!=12)
+            if (gamephase!=5&&gamephase!=12&&gamephase!=21)
                 {
                 stagetimer = stagetimer + deltatime;
                 //score
@@ -1676,7 +2662,7 @@ int main()
 
 
             //boss health
-            if (gamephase == 3||gamephase==10)
+            if (gamephase == 3||gamephase==10||gamephase==15||gamephase==17||gamephase==18||gamephase==19)
             {
                 bossHealthCap.setPosition(screensizex - 19, 398 - 2 * bossmaxhealth / 10);
                 window.draw(bossHealthCap);
@@ -1755,6 +2741,24 @@ int main()
                         bbullety[i] = NULL;
                     }
                 }
+                for (int i = 0; i < 1500; i++)
+                {
+                    rocket.setPosition(rocketX[i], rocketY[i]);
+                    if (blankCircle.getGlobalBounds().intersects(rocket.getGlobalBounds()))
+                    {
+                        rocketX[i] = NULL;
+                        rocketY[i] = NULL;
+                    }
+                }
+                for (int i = 0; i < 1500; i++)
+                {
+                    laser.setPosition(laserX[i], laserY[i]);
+                    if (blankCircle.getGlobalBounds().intersects(laser.getGlobalBounds()))
+                    {
+                        laserX[i] = NULL;
+                        laserY[i] = NULL;
+                    }
+                }
             }
             else
             {
@@ -1776,12 +2780,14 @@ int main()
                 bulletlevel = 3;
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num4))
                 bulletlevel = 4;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num5))
+                bulletlevel = 5;
 
 
 
             //player bullet
 
-            if (cooldown <= 0 && gamephase != 2 && gamephase != 4 && gamephase != 5 && gamephase != 0&&gamephase!=6&&gamephase!=9&&gamephase!=11&&gamephase!=12)
+            if (cooldown <= 0 && gamephase != 2 && gamephase != 4 && gamephase != 5 && gamephase != 0&&gamephase!=6&&gamephase!=9&&gamephase!=11&&gamephase!=12&&gamephase!=13&&gamephase!=14&&gamephase!=16&&gamephase!=17&&gamephase!=18&&gamephase!=20&&gamephase!=21)
             {
                 totalbullet = totalbullet % 1000;
                 if (bulletlevel == 1)
@@ -1839,6 +2845,15 @@ int main()
                     bullety[totalbullet] = PlayerSprite.getPosition().y - 20.f;
                     levelbullet[totalbullet] = bulletlevel;
                     totalbullet++;
+                }
+                if (bulletlevel == 5)
+                {
+                    for (int i = 0; i < 20; i++) {
+                        bulletx[totalbullet] = PlayerSprite.getPosition().x + 9.5;
+                        bullety[totalbullet] = PlayerSprite.getPosition().y - 20.f;
+                        levelbullet[totalbullet] = 1;
+                        totalbullet++;
+                    }
                 }
                 cooldown = 100;
             }
